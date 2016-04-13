@@ -27,7 +27,6 @@ public class MoveTo implements AgentTask<LocationHolder, MoveTo.ApproachResult> 
 			@Override
 			public void onTargetReached(LowLevelAgent agent) {
 				cf.complete(ApproachResult.TARGET_REACHED);
-				GoalEvaluation a = AgentGoal.GoalEvaluation.FAILED;
 			}
 
 			@Override
