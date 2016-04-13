@@ -1,0 +1,65 @@
+//created on: Apr 11, 2016
+package com.massisframework.massis.dasi
+
+//list any import classes here.
+import java.util.*;
+import java.util.concurrent.*;
+import com.massisframework.massis.dasi.agents.common.*;
+import com.massisframework.massis.dasi.agents.common.tasks.*;
+import com.massisframework.massis.dasi.agents.common.tasks.movement.*;
+import com.massisframework.massis.dasi.agents.common.info.*;
+import com.massisframework.massis.dasi.agents.common.goals.*;
+import com.massisframework.massis.dasi.agents.common.goals.movement.*;
+import com.massisframework.massis.dasi.environment.*;
+import com.massisframework.massis.model.*;
+import com.massisframework.massis.model.building.*;
+import com.massisframework.massis.model.agents.*;
+import com.massisframework.massis.dasi.agents.rescuer.info.*;
+import com.massisframework.massis.dasi.agents.worker.info.*;
+import com.massisframework.massis.model.location.*;
+
+
+//declare any global variables here
+
+
+
+rule "Initialize rescuer info"
+	when
+		$lli : LowLevelInfo($lla: lowLevelAgent, $rif: roomsInFloor)
+ 		not (exists(RescuerInfo()))
+ 	then
+  		System.out.println("Inserting RescuerInfo");
+  		$lla.setProperty("RESCUER",true);
+  		insert(new RescuerInfo($rif));
+end
+
+rule "Assign new Room to explore"
+	when
+		$gm  : GoalMemory()
+		$hlc : RuleHighLevelController()
+		$rc  : RescuerInfo( assignedRoom == null)
+	then
+	   System.out.println("Assigning new Room to explore");
+	   SimRoom ar = $rc.getRandomAvailableRoom();
+	   AgentGoal reachLocation = new ReachLocation($hlc,ar,100);
+	   modify ( $rc ) { assignRoom(ar) }
+	   insert(reachLocation);
+	   modify($gm){ addGoal(reachLocation) }
+	   modify($gm){ setCurrentGoal(reachLocation) }
+end
+
+rule "Is in the room assigned?"
+	when
+		$lli : LowLevelInfo( $currentRoom : currentRoom )
+		$rc :  RescuerInfo( assignedRoom != null && assignedRoom == $currentRoom )
+	then
+		System.out.println("Is in the room assigned. Setting it to null");
+		modify ( $rc ) { setAssignedRoom(null) }
+end
+
+
+
+
+
+
+

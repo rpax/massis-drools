@@ -1,0 +1,84 @@
+//created on: Apr 13, 2016
+package com.massisframework.massis.dasi.agents.common.info
+
+//list any import classes here.
+
+import java.awt.geom.Point2D;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+import org.kie.api.definition.type.Modifies;
+import com.massisframework.massis.model.agents.LowLevelAgent;
+import com.massisframework.massis.model.building.SimRoom;
+import com.massisframework.massis.model.location.Location;
+import straightedge.geom.KPoint;
+
+
+
+
+rule "update Location"
+    when
+        $lli : LowLevelInfo($lla: lowLevelAgent,shouldUpdateLocation == true,$tick:tick)
+    then
+       System.out.println("Updating Loc");
+       modify($lli) { setLocation($lla.getLocation()) }
+       
+end
+
+
+rule "update vision radio"
+    when
+        $lli : LowLevelInfo($lla: lowLevelAgent,shouldUpdateAgentsVisionRadio == true,$tick:tick)
+    then
+    	modify($lli){ setAgentsInVisionRadio($lla.getAgentsInVisionRadio()) }
+end
+
+
+
+rule "update acceleration"
+	when
+		$lli : LowLevelInfo($lla: lowLevelAgent,shouldUpdateAcceleration == true,$tick:tick)
+	then
+		modify($lli) {
+					setAcceleration(
+						$lla.getAcceleration().getX(),
+						$lla.getAcceleration().getY()
+						)
+					 }
+end
+
+
+rule "update agents in room"
+    when
+        $lli : LowLevelInfo($lla: lowLevelAgent,shouldUpdateAgentsInRoom == true,$tick:tick)
+    then
+    	modify($lli){ setAgentsInRoom($lla.getAgentsInRoom()) }
+end
+
+rule "update body radio"
+    when
+        $lli : LowLevelInfo($lla: lowLevelAgent,shouldUpdateBodyRadius == true,$tick:tick)
+    then
+    	modify($lli){ setBodyRadius($lla.getBodyRadius()) }
+end
+
+
+rule "update current room"
+    when
+        $lli : LowLevelInfo($lla: lowLevelAgent, shouldUpdateCurrentRoom == true,$tick:tick)
+    then
+    	System.out.println("Current Room Updated. Now is "+$lla.getRoom());
+    	modify($lli){ setCurrentRoom($lla.getRoom()) }
+end
+
+rule "update rooms in floor information"
+    when
+        $lli : LowLevelInfo($lla: lowLevelAgent,shouldUpdateRoomsInFloor == true,$tick:tick)
+    then
+    	modify($lli){ setRoomsInFloor($lla.getLocation().getFloor().getRooms()) }
+end
+

@@ -1,0 +1,50 @@
+//created on: Apr 11, 2016
+package com.massisframework.massis.dasi
+
+
+
+//list any import classes here.
+import java.util.*;
+import java.util.concurrent.*;
+import com.massisframework.massis.dasi.agents.common.*;
+import com.massisframework.massis.dasi.agents.common.tasks.*;
+import com.massisframework.massis.dasi.agents.common.tasks.movement.*;
+import com.massisframework.massis.dasi.agents.common.info.*;
+import com.massisframework.massis.dasi.agents.common.goals.*;
+import com.massisframework.massis.dasi.agents.common.goals.movement.*;
+import com.massisframework.massis.dasi.environment.*;
+import com.massisframework.massis.model.*;
+import com.massisframework.massis.model.building.*;
+import com.massisframework.massis.model.agents.*;
+import com.massisframework.massis.dasi.agents.rescuer.info.*;
+import com.massisframework.massis.dasi.agents.worker.info.*;
+import com.massisframework.massis.model.location.*;
+//declare any global variables here
+
+rule "Initialize rescuer info"
+	when
+		$lli : LowLevelInfo()
+ 		not (exists(WorkerInfo()))
+ 	then
+  		System.out.println("Inserting WorkerInfo");
+  		insert(new WorkerInfo());
+end
+
+rule "Sees rescuer"
+	when
+		$gm  : GoalMemory()
+		$hlc : RuleHighLevelController()
+		$wi  : WorkerInfo(followTarget == null)
+		LowLevelInfo($avr : agentsInRoom)
+    	$rescuer: LowLevelAgent() from $avr
+    	eval($rescuer.hasProperty("RESCUER"))
+ 	then
+ 	   AgentGoal reachLocation=new ReachLocation($hlc,$rescuer,-1);
+	   insert(reachLocation);
+	   modify($wi){ setFollowTarget( $rescuer ) }
+	   modify($gm){ addGoal(reachLocation) }
+	   modify($gm){ setCurrentGoal(reachLocation) }
+end
+
+
+
