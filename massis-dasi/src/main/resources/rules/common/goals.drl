@@ -2,6 +2,8 @@
 package com.massisframework.massis.dasi.agents.common.goals
 
 //list any import classes here.
+import com.massisframework.massis.dasi.*;
+import com.massisframework.massis.dasi.agents.*;
 import com.massisframework.massis.dasi.agents.common.*;
 import com.massisframework.massis.dasi.agents.common.info.*;
 import com.massisframework.massis.dasi.agents.common.goals.*;
@@ -10,8 +12,12 @@ import com.massisframework.massis.dasi.agents.common.tasks.*;
 import com.massisframework.massis.dasi.agents.common.tasks.movement.*;
 import com.massisframework.massis.dasi.agents.common.goals.AgentGoal.GoalEvaluation;
 import com.massisframework.massis.dasi.agents.common.goals.AgentGoal.GoalState;
+import com.massisframework.massis.dasi.environment.RuleMessage;
 //declare any global variables here
 
+declare RuleMessage
+    @role( event )
+end
 
 rule "Insert goal memory"
 
@@ -37,8 +43,9 @@ end
 
 rule "If the current goal is to move, move"
 	when
-		$lli : LowLevelInfo($lla : lowLevelAgent, $tick:tick)
-		$gm : GoalMemory(
+		$rhlc	: RuleHighLevelController()
+		$lli	: LowLevelInfo($lla : lowLevelAgent, $tick:tick)
+		$gm		: GoalMemory(
 						$cg : currentGoal,
 						currentGoal!=null,
 						currentGoal instanceof ReachLocation,
@@ -46,7 +53,7 @@ rule "If the current goal is to move, move"
 						$target : currentGoal.goalData.target					
 						)
 	then
-	 	new MoveTo().execute($lla, $target);
+	 	new MoveTo().execute($rhlc, $target);
 end
 
 

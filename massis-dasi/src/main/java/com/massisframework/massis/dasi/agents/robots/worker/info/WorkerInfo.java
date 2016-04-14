@@ -1,4 +1,4 @@
-package com.massisframework.massis.dasi.agents.worker.info;
+package com.massisframework.massis.dasi.agents.robots.worker.info;
 
 import org.kie.api.definition.type.Modifies;
 import org.kie.api.definition.type.PropertyReactive;

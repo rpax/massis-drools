@@ -34,7 +34,7 @@ public class RuleEnvironment {
 	private static HashMap<EnvironmentManager, RuleEnvironment> envMap = new HashMap<>();
 
 	public static enum REKeys {
-		RULE_ENVIRONMENT, MESSAGE_QUEUE,MSG_ENTRY_POINT
+		RULE_ENVIRONMENT, MESSAGE_QUEUE, MSG_ENTRY_POINT
 	}
 
 	private Environment kieEnv;
@@ -49,9 +49,7 @@ public class RuleEnvironment {
 	public <T> void sendMessage(RuleHighLevelController from,
 			RuleMessage<T> msg) {
 		// Tiene que ir por entry points
-		this.ruleAgents
-				.stream()
-				.filter(msg::validFor)
+		this.ruleAgents.stream().filter(msg::validFor)
 				.forEach(a -> from.receiveMessage(msg));
 
 	}

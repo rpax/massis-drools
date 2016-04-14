@@ -16,8 +16,8 @@ import com.massisframework.massis.dasi.environment.*;
 import com.massisframework.massis.model.*;
 import com.massisframework.massis.model.building.*;
 import com.massisframework.massis.model.agents.*;
-import com.massisframework.massis.dasi.agents.rescuer.info.*;
-import com.massisframework.massis.dasi.agents.worker.info.*;
+import com.massisframework.massis.dasi.agents.robots.rescuer.info.*;
+import com.massisframework.massis.dasi.agents.robots.worker.info.*;
 import com.massisframework.massis.model.location.*;
 //declare any global variables here
 

@@ -32,11 +32,6 @@ public class RuleHighLevelController extends HighLevelController {
 		this.ruleEnv = RuleEnvironment.getInstanceFor(this);
 		String[] paths = metadata.get("rules").split(",");
 		this.startKieSession(paths);
-		// TODO
-	}
-
-	public LowLevelAgent getLowLevelAgent() {
-		return this.agent;
 	}
 
 	private void startKieSession(String[] paths) {
@@ -76,4 +71,13 @@ public class RuleHighLevelController extends HighLevelController {
 				.getEntryPoint(RuleEnvironment.REKeys.MSG_ENTRY_POINT.name());
 		msgStream.insert(msg);
 	}
+
+	public LowLevelAgent getLowLevelAgent() {
+		return this.agent;
+	}
+
+	public RuleEnvironment getRuleEnvironment() {
+		return this.ruleEnv;
+	}
+
 }

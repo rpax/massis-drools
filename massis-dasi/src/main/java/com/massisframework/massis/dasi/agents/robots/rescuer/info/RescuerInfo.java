@@ -1,4 +1,4 @@
-package com.massisframework.massis.dasi.agents.rescuer.info;
+package com.massisframework.massis.dasi.agents.robots.rescuer.info;
 
 import java.util.Collection;
 import java.util.HashSet;
