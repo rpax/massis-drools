@@ -58,7 +58,12 @@ rule "Is in the room assigned?"
 end
 
 
-
+rule "Receive message"
+when
+    RuleMessage( $data: messageData ) from entry-point "ATM Stream"
+then
+    // authorize withdraw
+end
 
 
 

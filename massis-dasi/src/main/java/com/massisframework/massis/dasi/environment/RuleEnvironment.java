@@ -1,8 +1,10 @@
 package com.massisframework.massis.dasi.environment;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 
 import org.kie.api.KieBase;
 import org.kie.api.KieBaseConfiguration;
@@ -12,29 +14,48 @@ import org.kie.api.builder.KieFileSystem;
 import org.kie.api.builder.Message.Level;
 import org.kie.api.builder.ReleaseId;
 import org.kie.api.builder.Results;
+import org.kie.api.conf.EventProcessingOption;
+import org.kie.api.conf.KieBaseOption;
 import org.kie.api.runtime.Environment;
 import org.kie.api.runtime.KieContainer;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.KieSessionConfiguration;
+import org.kie.api.runtime.conf.ClockTypeOption;
+import org.kie.api.runtime.conf.SingleValueKieSessionOption;
 import org.kie.internal.io.ResourceFactory;
 
 import com.massisframework.massis.dasi.RuleHighLevelController;
+import com.massisframework.massis.model.building.Building;
 import com.massisframework.massis.model.building.SimulationObject;
 import com.massisframework.massis.model.managers.EnvironmentManager;
 
 public class RuleEnvironment {
 
-	private static final String RULE_ENVIRONMENT = "RULE_ENVIRONMENT";
-
 	private static HashMap<EnvironmentManager, RuleEnvironment> envMap = new HashMap<>();
 
+	public static enum REKeys {
+		RULE_ENVIRONMENT, MESSAGE_QUEUE,MSG_ENTRY_POINT
+	}
+
 	private Environment kieEnv;
+	private List<RuleHighLevelController> ruleAgents;
 
 	private RuleEnvironment() {
 		this.kieEnv = KieServices.Factory.get().newEnvironment();
-		this.kieEnv.set(RULE_ENVIRONMENT, this);
+		this.kieEnv.set(REKeys.RULE_ENVIRONMENT.name(), this);
+		this.ruleAgents = new ArrayList<>();
 	}
-	
+
+	public <T> void sendMessage(RuleHighLevelController from,
+			RuleMessage<T> msg) {
+		// Tiene que ir por entry points
+		this.ruleAgents
+				.stream()
+				.filter(msg::validFor)
+				.forEach(a -> from.receiveMessage(msg));
+
+	}
+
 	public KieSession createKieSession(RuleHighLevelController hlc,
 			String... rulesPath) {
 		return this.createKieSession(hlc, Arrays.asList(rulesPath));
@@ -72,14 +93,18 @@ public class RuleEnvironment {
 		// Configure and create a KieContainer that reads the drools files
 		KieBaseConfiguration kieBaseConfiguration = kieServices
 				.newKieBaseConfiguration();
+		kieBaseConfiguration.setOption(EventProcessingOption.STREAM);
+
 		KieBase kieBase = kiecontainer.newKieBase(kieBaseConfiguration);
 
 		// Configure and create the KieSession
 		KieSessionConfiguration kieSessionConfiguration = kieServices
 				.newKieSessionConfiguration();
+		kieSessionConfiguration.setOption(ClockTypeOption.get("pseudo"));
 
-		KieSession kieSession = kieBase.newKieSession(kieSessionConfiguration,this.kieEnv);
-
+		KieSession kieSession = kieBase.newKieSession(kieSessionConfiguration,
+				this.kieEnv);
+		this.ruleAgents.add(hlc);
 		return kieSession;
 	}
 

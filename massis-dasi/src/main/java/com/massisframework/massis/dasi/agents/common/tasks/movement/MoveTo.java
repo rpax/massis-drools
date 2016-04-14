@@ -3,12 +3,9 @@ package com.massisframework.massis.dasi.agents.common.tasks.movement;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import com.massisframework.massis.dasi.agents.common.goals.AgentGoal;
-import com.massisframework.massis.dasi.agents.common.goals.AgentGoal.GoalEvaluation;
 import com.massisframework.massis.dasi.agents.common.tasks.AgentTask;
 import com.massisframework.massis.model.agents.LowLevelAgent;
 import com.massisframework.massis.model.building.LocationHolder;
-import com.massisframework.massis.model.location.Location;
 import com.massisframework.massis.model.managers.movement.ApproachCallback;
 import com.massisframework.massis.pathfinding.straightedge.FindPathResult.PathFinderErrorReason;
 
