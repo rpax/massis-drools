@@ -31,9 +31,6 @@ rule "update Location"
       // System.out.println("update loc");
        modify($lli) { setTick($tick) }
        modify($lli) { setLocation($lla.getLocation()) }
-       update($lli);
-       
-       
 end
 
 

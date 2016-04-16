@@ -72,9 +72,9 @@ public class RuleHighLevelController extends HighLevelController {
 		}
 		simTick.incTick(+1);
 		this.kieSession.update(simTickHandle,simTick);
+		this.kieSession.update(this.kieSession.getFactHandle(this),this);
 		this.kieSession.update(this.lowLevelInfoHandle, this.lowLevelInfo);
 		this.kieSession.startProcess("com.massisframework.massis.dasi.simulationflow");
-		this.kieSession.update(simTickHandle,simTick);
 		this.kieSession.fireAllRules();
 		
 		SessionPseudoClock clock = this.kieSession.getSessionClock();

@@ -11,14 +11,21 @@ import com.massisframework.massis.dasi.events.messages.MessageReceived;
 import com.massisframework.massis.dasi.apps.robots.commontasks.*;
 import com.massisframework.massis.dasi.apps.robots.*;
 import com.massisframework.massis.dasi.apps.robots.messages.*;
-
+import com.massisframework.massis.dasi.agents.goals.*;
 import com.massisframework.massis.model.agents.LowLevelAgent;
 import com.massisframework.massis.model.building.SimRoom;
 import com.massisframework.massis.model.location.Location;
 
 
-//declare any global variables here
 
+//declare any global variables here
+rule "Generate Goal Memory"
+	ruleflow-group "goalselection"
+	when
+		not GoalMemory(  )
+ 	then
+  		insert(new GoalMemory());
+end
 
 
 
@@ -49,23 +56,21 @@ end
 rule "Move to the target (if has energy)"
 	ruleflow-group "goalresolution"
     when
-       $me : VictimRobot(energy > 0)
+       $me : VictimRobot($energy : energy > 0)
        LowLevelInfo( $currentLoc : location )
-       CurrentTarget(
-       				location.distance2D($currentLoc)>=100,
-       				$targetLoc : location
-       				)
+       CurrentTarget(location.distance2D($currentLoc)>=100,$targetLoc : location)
     then
 	  AgentTask task = new MoveToTarget();
 	  task.execute($me,$targetLoc);
 	  $me.getLogger().info("moving to "+$targetLoc);
+	  $me.getLogger().info("Energy: "+$energy);
 end
 
 rule "Send help me message due to lack of energy"
 	ruleflow-group "goalresolution"
     when
-        $me : VictimRobot(energy <= 0)
-        LowLevelInfo( $currentLoc : location  )
+        $me : VictimRobot(energy <= 0 )
+        LowLevelInfo($currentLoc : location)
     then
        String uuid=UUID.randomUUID().toString();
 	   SimpleTasksFactory.sendMessage($me,new IHaveNoEnergy($currentLoc, uuid));

@@ -28,7 +28,7 @@ public class VictimRobot extends RobotAgent {
 	@Override
 	public float getEnergyConsumption()
 	{
-		return 0;
+		return 10;
 	}
 
 }
