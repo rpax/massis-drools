@@ -1,0 +1,20 @@
+//created on: Apr 16, 2016
+package com.massisframework.massis.dasi.apps.robots
+
+import com.massisframework.massis.dasi.lowlevel.LowLevelInfo;
+import com.massisframework.massis.model.agents.LowLevelAgent;
+
+rule "Recharge robots in range"
+
+    when
+       LowLevelInfo($tick:tick,//forces execution every tick
+       				$agentsInRange : lowLevelAgent.getAgentsInRange(500)
+       				)
+       LowLevelAgent(
+       				  highLevelData  instanceof RobotAgent,
+       				  $robot : ((RobotAgent)highLevelData)
+       				 ) from $agentsInRange
+    then
+       modify($robot){ setEnergy( $robot.getEnergy()+1 ) }
+end
+

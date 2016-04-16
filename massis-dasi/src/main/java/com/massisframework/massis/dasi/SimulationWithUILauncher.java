@@ -1,8 +1,9 @@
 package com.massisframework.massis.dasi;
 
-import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.xml.parsers.DocumentBuilderFactory;
 
 import com.massisframework.gui.DrawableLayer;
 import com.massisframework.massis.displays.floormap.layers.ConnectionsLayer;
@@ -22,7 +23,6 @@ import com.massisframework.massis.displays.floormap.layers.VisionRadioLayer;
 import com.massisframework.massis.displays.floormap.layers.WallLayer;
 import com.massisframework.massis.sim.Simulation;
 import com.massisframework.massis.sim.SimulationWithUI;
-import com.massisframework.testdata.SampleHomesLoader;
 
 import sim.display.Console;
 import sim.display.GUIState;
@@ -37,7 +37,8 @@ public class SimulationWithUILauncher {
 
 		String buildingFilePath = null;
 		try {
-
+			 DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+			System.out.println(factory);
 			buildingFilePath = "robots.sh3d";
 		} catch (final Exception e) {
 			Logger.getLogger(SimulationWithUILauncher.class.getName())

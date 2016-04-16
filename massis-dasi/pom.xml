@@ -8,6 +8,8 @@
 	<description>Simple Hello World simulator</description>
 	<version>0.0.1-SNAPSHOT</version>
 	<properties>
+		<jbpm.version>6.3.0.Final</jbpm.version>
+		<drools.version>6.3.0.Final</drools.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
@@ -26,12 +28,17 @@
 				<groupId>org.drools</groupId>
 				<artifactId>drools-bom</artifactId>
 				<type>pom</type>
-				<version>6.1.0.Final</version>
+				<version>${drools.version}</version>
 				<scope>import</scope>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
 	<dependencies>
+		<dependency>
+			<groupId>xerces</groupId>
+			<artifactId>xercesImpl</artifactId>
+			<version>2.11.0</version>
+		</dependency>
 		<dependency>
 			<groupId>com.massisframework.massis</groupId>
 			<artifactId>massis-core</artifactId>
@@ -50,6 +57,11 @@
 			<groupId>org.drools</groupId>
 			<artifactId>drools-compiler</artifactId>
 			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.jbpm</groupId>
+			<artifactId>jbpm-bpmn2</artifactId>
+			<version>${jbpm.version}</version>
 		</dependency>
 	</dependencies>
 </project>

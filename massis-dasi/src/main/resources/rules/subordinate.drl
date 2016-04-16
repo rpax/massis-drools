@@ -1,0 +1,96 @@
+//created on: Apr 11, 2016
+package com.massisframework.massis.dasi.apps.robots.subordinate
+
+//std imports
+import java.util.*;
+import java.util.concurrent.*;
+import com.massisframework.massis.dasi.lowlevel.LowLevelInfo;
+import com.massisframework.massis.dasi.agents.tasks.AgentTask;
+import com.massisframework.massis.dasi.agents.tasks.SimpleTasksFactory;
+import com.massisframework.massis.dasi.events.messages.MessageReceived;
+//robots
+import com.massisframework.massis.dasi.apps.robots.*;
+import com.massisframework.massis.dasi.apps.robots.messages.*;
+import com.massisframework.massis.dasi.apps.robots.messages.teamnegotiation.*;
+import com.massisframework.massis.dasi.apps.robots.messages.teamnegotiation.TeamNegotiationInfo.NegotiationStatus;
+import com.massisframework.massis.dasi.apps.robots.messages.teamnegotiation.TeamNegotiationInfo;
+//leader
+import com.massisframework.massis.dasi.apps.robots.subordinate.*;
+import com.massisframework.massis.dasi.apps.robots.subordinate.info.*;
+import com.massisframework.massis.dasi.apps.robots.subordinate.tasks.*;
+//declare any global variables here
+
+
+
+//=============================================================================
+// Team negotiation rules
+//-----------------------------------------------------------------------------
+
+rule "Initiate team negotiation"
+	ruleflow-group "goalresolution"
+	when
+		not TeamNegotiationInfo()
+	then
+		insert(new TeamNegotiationInfo(NegotiationStatus.NOT_STARTED));
+end
+
+rule "Team join request received - I dont have a team"
+	ruleflow-group "goalresolution"
+	when
+		$me   : SubordinateRobot()
+		$tni : TeamNegotiationInfo( status == NegotiationStatus.NOT_STARTED )
+		$mr : MessageReceived(
+							data instanceof JoinTeamRequest,
+							$sender  : sender,
+							$info : data.info,
+ 							$uuid    :  data.uuid
+     						) from entry-point MESSAGING
+     			
+ 	then
+ 	  $me.getLogger().info("Request from "+$sender+" about team : "+$info);
+ 	  $me.getLogger().info("I am interested, because I have no team");
+	  modify($tni){ setStatus (NegotiationStatus.WAITING_FOR_RESPONSE) }
+	  modify($tni){ setPeer($sender) }
+	  SimpleTasksFactory.sendMessage($me,$sender,new JoinTeamResponse($tni, $uuid));
+	
+	  
+end
+
+rule "Team join request received - I am waiting for response"
+	ruleflow-group "goalresolution"
+	when
+		$me   : SubordinateRobot()
+		$tni	:	TeamNegotiationInfo(status == NegotiationStatus.WAITING_FOR_RESPONSE,$peer:peer)
+		$mr		:	MessageReceived(
+									data instanceof YouArePartOfMyTeam,
+									$uuid : data.uuid,
+									$teamName : data.info,
+									sender==$peer,
+									$sender : sender
+									) from entry-point MESSAGING
+ 	then
+ 	  $me.getLogger().info("Received YouArePartOfMyTeam message from "+$sender+". Joining team "+$teamName);
+ 	  $me.getLogger().info("Finishing negotiation");
+ 	  modify($tni) { setStatus( NegotiationStatus.FINISHED ) }
+ 	  modify($me) { setTeamName($teamName) }
+	  SimpleTasksFactory.sendMessage($me,$sender,new JoinTeamResponse($tni, $uuid));
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

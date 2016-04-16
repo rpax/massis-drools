@@ -1,0 +1,72 @@
+//created on: Apr 16, 2016
+package com.massisframework.massis.dasi.apps.robots.victim
+
+//
+import java.util.*;
+import java.util.concurrent.*;
+import com.massisframework.massis.dasi.lowlevel.LowLevelInfo;
+import com.massisframework.massis.dasi.agents.tasks.AgentTask;
+import com.massisframework.massis.dasi.agents.tasks.SimpleTasksFactory;
+import com.massisframework.massis.dasi.events.messages.MessageReceived;
+import com.massisframework.massis.dasi.apps.robots.commontasks.*;
+import com.massisframework.massis.dasi.apps.robots.*;
+import com.massisframework.massis.dasi.apps.robots.messages.*;
+
+import com.massisframework.massis.model.agents.LowLevelAgent;
+import com.massisframework.massis.model.building.SimRoom;
+import com.massisframework.massis.model.location.Location;
+
+
+//declare any global variables here
+
+
+
+
+rule "Select target"
+	ruleflow-group "goalresolution"
+    when
+    	$me : VictimRobot()
+    	LowLevelInfo($lla : lowLevelAgent)
+        not CurrentTarget()
+    then
+    	SimRoom rndRoom = $lla.getRandomRoom();
+        Location rndLoc = rndRoom.getRandomLoc();
+		CurrentTarget currentTarget = new CurrentTarget(rndLoc);
+		$me.getLogger().info("SELECTING TARGET");
+		insert(currentTarget);
+end
+
+rule "Less than 1 meter of distance : remove current target"
+	ruleflow-group "goalresolution"
+    when
+    	LowLevelInfo( $currentLoc : location  )
+        $currentTarget : CurrentTarget(location.distance2D($currentLoc)<100)
+    then
+    	delete($currentTarget);
+end
+
+
+rule "Move to the target (if has energy)"
+	ruleflow-group "goalresolution"
+    when
+       $me : VictimRobot(energy > 0)
+       LowLevelInfo( $currentLoc : location )
+       CurrentTarget(
+       				location.distance2D($currentLoc)>=100,
+       				$targetLoc : location
+       				)
+    then
+	  AgentTask task = new MoveToTarget();
+	  task.execute($me,$targetLoc);
+	  $me.getLogger().info("moving to "+$targetLoc);
+end
+
+rule "Send help me message due to lack of energy"
+	ruleflow-group "goalresolution"
+    when
+        $me : VictimRobot(energy <= 0)
+        LowLevelInfo( $currentLoc : location  )
+    then
+       String uuid=UUID.randomUUID().toString();
+	   SimpleTasksFactory.sendMessage($me,new IHaveNoEnergy($currentLoc, uuid));
+end

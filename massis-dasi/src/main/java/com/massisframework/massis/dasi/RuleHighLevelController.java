@@ -7,12 +7,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.drools.core.time.SessionPseudoClock;
 import org.kie.api.runtime.KieSession;
-import org.kie.api.runtime.rule.EntryPoint;
 import org.kie.api.runtime.rule.FactHandle;
 
-import com.massisframework.massis.dasi.agents.common.info.LowLevelInfo;
-import com.massisframework.massis.dasi.environment.RuleEnvironment;
-import com.massisframework.massis.dasi.environment.RuleMessage;
+import com.massisframework.massis.dasi.lowlevel.LowLevelInfo;
+import com.massisframework.massis.dasi.lowlevel.SimTick;
 import com.massisframework.massis.model.agents.HighLevelController;
 import com.massisframework.massis.model.agents.LowLevelAgent;
 
@@ -20,30 +18,39 @@ public class RuleHighLevelController extends HighLevelController {
 
 	private static final long serialVersionUID = 1L;
 	private KieSession kieSession;
-	private long tick = 0;
 	private LowLevelInfo lowLevelInfo;
 	private FactHandle lowLevelInfoHandle;
-	private RuleEnvironment ruleEnv;
+	private FactHandle simTickHandle;
+	private SimTick simTick;
+	private RuleContext ruleEnv;
 
 	public RuleHighLevelController(LowLevelAgent agent,
-			Map<String, String> metadata, String resourcesFolder) {
+			Map<String, String> metadata, String resourcesFolder)
+	{
 		super(agent, metadata, resourcesFolder);
 		this.agent.setHighLevelData(this);
-		this.ruleEnv = RuleEnvironment.getInstanceFor(this);
-		String[] paths = metadata.get("rules").split(",");
-		this.startKieSession(paths);
+		this.ruleEnv = RuleContext.getInstanceFor(this);
+		this.startKieSession(getRulePaths());
 	}
 
-	private void startKieSession(String[] paths) {
+	protected String[] getRulePaths()
+	{
+		String[] paths = metadata.get("rules").split(",");
+		return paths;
+	}
+
+	protected void startKieSession(String[] paths)
+	{
 		ArrayList<String> rulesPath = new ArrayList<>();
 		rulesPath.add("rules/common/lowlevel.drl");
-		rulesPath.add("rules/common/goals.drl");
+		// rulesPath.add("rules/common/goals.drl");
 		Arrays.stream(paths).forEach(rulesPath::add);
 		this.kieSession = ruleEnv.createKieSession(this, rulesPath);
 	}
 
 	@Override
-	public void stop() {
+	public void stop()
+	{
 		/*
 		 * Clean resources, threads...etc
 		 */
@@ -51,33 +58,42 @@ public class RuleHighLevelController extends HighLevelController {
 	}
 
 	@Override
-	public void step() {
+	public void step()
+	{
 
-		if (this.lowLevelInfo == null) {
+		if (this.lowLevelInfo == null)
+		{
 			this.lowLevelInfo = new LowLevelInfo(this.agent);
 			// Task executor
 			this.lowLevelInfoHandle = this.kieSession.insert(this.lowLevelInfo);
 			this.kieSession.insert(this);
+			simTick = new SimTick(-1);
+			this.simTickHandle = this.kieSession.insert(simTick);
 		}
-		this.lowLevelInfo.setTick(this.tick++);
+		simTick.incTick(+1);
+		this.kieSession.update(simTickHandle,simTick);
 		this.kieSession.update(this.lowLevelInfoHandle, this.lowLevelInfo);
-		SessionPseudoClock clock = this.kieSession.getSessionClock();
+		this.kieSession.startProcess("com.massisframework.massis.dasi.simulationflow");
+		this.kieSession.update(simTickHandle,simTick);
 		this.kieSession.fireAllRules();
+		
+		SessionPseudoClock clock = this.kieSession.getSessionClock();
 		clock.advanceTime(1, TimeUnit.SECONDS);
 	}
 
-	public <T> void receiveMessage(RuleMessage<T> msg) {
-		EntryPoint msgStream = this.kieSession
-				.getEntryPoint(RuleEnvironment.REKeys.MSG_ENTRY_POINT.name());
-		msgStream.insert(msg);
-	}
-
-	public LowLevelAgent getLowLevelAgent() {
+	public LowLevelAgent getLowLevelAgent()
+	{
 		return this.agent;
 	}
 
-	public RuleEnvironment getRuleEnvironment() {
+	public RuleContext getRuleEnvironment()
+	{
 		return this.ruleEnv;
+	}
+
+	public KieSession getKieSession()
+	{
+		return kieSession;
 	}
 
 }
