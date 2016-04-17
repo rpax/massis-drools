@@ -29,7 +29,7 @@ public class LowLevelInfo {
 	private Location location;
 	private SimRoom currentRoom;
 	private LowLevelAgent lowLevelAgent;
-	private long tick=Long.MIN_VALUE;
+	private long tick = Long.MIN_VALUE;
 	private final int lowLevelId;
 
 	public LowLevelInfo(LowLevelAgent lla)
@@ -48,12 +48,20 @@ public class LowLevelInfo {
 		this.currentRoom = lla.getRoom();
 	}
 
-	
+	public void updateInfo(long tick)
+	{
+		this.setAcceleration(this.lowLevelAgent.getAcceleration().x,
+				this.lowLevelAgent.getAcceleration().y);
+		this.setAgentsInRoom(this.lowLevelAgent.getAgentsInRoom());
+		this.setAgentsInVisionRadio(
+				this.lowLevelAgent.getAgentsInVisionRadio());
+		this.setBodyRadius(this.getBodyRadius());
+		this.setCurrentRoom(this.lowLevelAgent.getRoom());
+		this.setLocation(this.lowLevelAgent.getLocation());
+		this.setRoomsInFloor(
+				this.lowLevelAgent.getLocation().getFloor().getRooms());
+	}
 
-	/*
-	 * Update methods. Check for changes, and if changes exist, set the new
-	 * values
-	 */
 	public boolean shouldUpdateAcceleration()
 	{
 		return (!pointEquals(lowLevelAgent.getAcceleration(),
@@ -93,7 +101,7 @@ public class LowLevelInfo {
 
 	public boolean shouldUpdateLocation()
 	{
-		return  this.location.getX() != this.lowLevelAgent.getLocation().getX()
+		return this.location.getX() != this.lowLevelAgent.getLocation().getX()
 				||
 				this.location.getY() != this.lowLevelAgent.getLocation().getY()
 				||

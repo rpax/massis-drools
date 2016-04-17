@@ -19,6 +19,7 @@ public class LeaderRobot extends RobotAgent {
 			String resourcesFolder)
 	{
 		super(agent, metadata, resourcesFolder);
+		this.setIdle(false);
 	}
 	
 	@Override

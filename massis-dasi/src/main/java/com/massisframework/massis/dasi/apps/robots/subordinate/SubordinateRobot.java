@@ -17,6 +17,7 @@ public class SubordinateRobot extends RobotAgent {
 			String resourcesFolder)
 	{
 		super(agent, metadata, resourcesFolder);
+		this.setIdle(true);
 	}
 
 	@Override

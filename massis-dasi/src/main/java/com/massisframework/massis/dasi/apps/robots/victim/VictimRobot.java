@@ -11,14 +11,15 @@ import com.massisframework.massis.model.agents.LowLevelAgent;
 public class VictimRobot extends RobotAgent {
 
 	private static final long serialVersionUID = 8456736523294234541L;
+	private float energyConsumption;
 
 	public VictimRobot(LowLevelAgent agent, Map<String, String> metadata,
 			String resourcesFolder)
 	{
 		super(agent, metadata, resourcesFolder);
+		this.energyConsumption = (float)Math.random()*2+2;
 	}
 
-	// com.massisframework.massis.dasi.apps.robots.RechargeStation
 	@Override
 	protected String[] getRulePaths()
 	{
@@ -28,7 +29,7 @@ public class VictimRobot extends RobotAgent {
 	@Override
 	public float getEnergyConsumption()
 	{
-		return 10;
+		return this.energyConsumption;
 	}
 
 }

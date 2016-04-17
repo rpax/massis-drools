@@ -1,5 +1,6 @@
 package com.massisframework.massis.dasi.apps.robots;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -28,7 +29,7 @@ public abstract class RobotAgent extends RuleHighLevelController {
 	private static final long serialVersionUID = -3482235328135497066L;
 
 	private float energy;
-
+	private boolean idle;
 	private String teamName;
 	private Collection<RobotAgent> teamMembers;
 
@@ -38,6 +39,8 @@ public abstract class RobotAgent extends RuleHighLevelController {
 		super(agent, metadata, resourcesFolder);
 		this.logger = Logger.getLogger("RobotAgent_" + this.agent.getID());
 		this.energy = 1000;
+		agent.setMaxSpeed(agent.getMaxSpeed()+agent.getMaxSpeed()*Math.random());
+		this.teamMembers = new ArrayList<>();
 	}
 
 	public String getTeamName()
@@ -55,6 +58,11 @@ public abstract class RobotAgent extends RuleHighLevelController {
 		return teamMembers;
 	}
 
+	public Location getLocation()
+	{
+		return this.agent.getLocation();
+	}
+
 	@Modifies("teamName")
 	public void setTeamName(String teamName)
 	{
@@ -65,6 +73,12 @@ public abstract class RobotAgent extends RuleHighLevelController {
 	public void setTeamMembers(Collection<RobotAgent> teamMembers)
 	{
 		this.teamMembers = teamMembers;
+	}
+
+	@Modifies("teamMembers")
+	public void addTeamMember(RobotAgent teamMember)
+	{
+		this.teamMembers.add(teamMember);
 	}
 
 	public Logger getLogger()
@@ -86,10 +100,26 @@ public abstract class RobotAgent extends RuleHighLevelController {
 	@Modifies("energy")
 	public void increaseEnergy(float quantity)
 	{
-		this.energy += quantity;
+		this.setEnergy(this.getEnergy()+quantity);
+	}
+
+	public boolean isIdle()
+	{
+		return idle;
+	}
+
+	@Modifies({ "idle" })
+	public void setIdle(boolean idle)
+	{
+		this.idle = idle;
 	}
 
 	//
+	public abstract float getEnergyConsumption();
+
+	/*
+	 * Helper methods
+	 */
 	public double distanceTo(Location to)
 	{
 		CompletableFuture<Double> cf = new CompletableFuture<Double>();
@@ -129,7 +159,4 @@ public abstract class RobotAgent extends RuleHighLevelController {
 			throw new RuntimeException(e);
 		}
 	}
-
-	public abstract float getEnergyConsumption();
-
 }

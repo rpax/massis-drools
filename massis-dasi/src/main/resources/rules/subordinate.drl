@@ -8,18 +8,20 @@ import com.massisframework.massis.dasi.lowlevel.LowLevelInfo;
 import com.massisframework.massis.dasi.agents.tasks.AgentTask;
 import com.massisframework.massis.dasi.agents.tasks.SimpleTasksFactory;
 import com.massisframework.massis.dasi.events.messages.MessageReceived;
+import com.massisframework.massis.model.agents.LowLevelAgent;
 //robots
 import com.massisframework.massis.dasi.apps.robots.*;
 import com.massisframework.massis.dasi.apps.robots.messages.*;
 import com.massisframework.massis.dasi.apps.robots.messages.teamnegotiation.*;
 import com.massisframework.massis.dasi.apps.robots.messages.teamnegotiation.TeamNegotiationInfo.NegotiationStatus;
 import com.massisframework.massis.dasi.apps.robots.messages.teamnegotiation.TeamNegotiationInfo;
-//leader
 import com.massisframework.massis.dasi.apps.robots.subordinate.*;
 import com.massisframework.massis.dasi.apps.robots.subordinate.info.*;
 import com.massisframework.massis.dasi.apps.robots.subordinate.tasks.*;
-//declare any global variables here
+import com.massisframework.massis.dasi.apps.robots.victim.*;
 
+import com.massisframework.massis.dasi.apps.robots.leader.VictimToSave;
+import com.massisframework.massis.dasi.apps.robots.commontasks.*;
 
 
 //=============================================================================
@@ -27,7 +29,7 @@ import com.massisframework.massis.dasi.apps.robots.subordinate.tasks.*;
 //-----------------------------------------------------------------------------
 
 rule "Initiate team negotiation"
-	ruleflow-group "goalresolution"
+	
 	when
 		not TeamNegotiationInfo()
 	then
@@ -35,7 +37,7 @@ rule "Initiate team negotiation"
 end
 
 rule "Team join request received - I dont have a team"
-	ruleflow-group "goalresolution"
+	
 	when
 		$me   : SubordinateRobot()
 		$tni : TeamNegotiationInfo( status == NegotiationStatus.NOT_STARTED )
@@ -52,12 +54,12 @@ rule "Team join request received - I dont have a team"
 	  modify($tni){ setStatus (NegotiationStatus.WAITING_FOR_RESPONSE) }
 	  modify($tni){ setPeer($sender) }
 	  SimpleTasksFactory.sendMessage($me,$sender,new JoinTeamResponse($tni, $uuid));
-	
+	  delete($mr);
 	  
 end
 
 rule "Team join request received - I am waiting for response"
-	ruleflow-group "goalresolution"
+	
 	when
 		$me   : SubordinateRobot()
 		$tni	:	TeamNegotiationInfo(status == NegotiationStatus.WAITING_FOR_RESPONSE,$peer:peer)
@@ -74,6 +76,59 @@ rule "Team join request received - I am waiting for response"
  	  modify($tni) { setStatus( NegotiationStatus.FINISHED ) }
  	  modify($me) { setTeamName($teamName) }
 	  SimpleTasksFactory.sendMessage($me,$sender,new JoinTeamResponse($tni, $uuid));
+	  modify($me) { addTeamMember((RobotAgent)$sender)}
+	  delete($mr);
+	  
+end
+
+rule "Received save victim order"
+    when
+       $me	: SubordinateRobot(idle == true)
+       $mr	:	MessageReceived(
+						data instanceof SaveVictim,
+						$victim : data.info
+						) from entry-point MESSAGING
+    then
+	  //ñapa demo
+	  $me.getLogger().info("Received save victim order");
+	  modify($me){setIdle(false)}
+	  insert(new VictimToSave($victim));
+	  delete($mr);
+	 
+end
+
+rule "Save victim - approach"
+    when
+       VictimToSave($victim : victim)
+       $me	:   SubordinateRobot()
+       LowLevelInfo( location.distance2D($victim.getLocation())>1000)
+    then
+	  //ñapa demo
+	  AgentTask task = new MoveToTarget();
+	  task.execute($me,$victim.getLocation());
+	 // $me.getLogger().info("moving to "+$victim+"for saving");
+end
+
+rule "If another victim is seen, recharge it"
+    when
+      LowLevelInfo( $avr: agentsInVisionRadio)
+      LowLevelAgent( $victim : highLevelData  instanceof VictimRobot) from $avr
+    then
+ 	  ((VictimRobot)$victim).setEnergy(1000);
+end
+
+rule "Save victim - recharge"
+    when
+       $vts: VictimToSave($victim : victim)
+       $me	:   SubordinateRobot()
+       LowLevelInfo( location.distance2D($victim.getLocation())<=1000)
+    then
+	  $victim.setEnergy(1000);
+	  $me.getLogger().info("updating energy");
+	  delete($vts);
+	  modify($me){setIdle(true)}
+	  String uuid=UUID.randomUUID().toString();
+	  SimpleTasksFactory.sendMessage($me,new VictimSaved($victim, uuid));
 end
 
 

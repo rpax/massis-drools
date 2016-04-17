@@ -1,7 +1,5 @@
 package com.massisframework.massis.dasi;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -20,7 +18,6 @@ public class RuleHighLevelController extends HighLevelController {
 	private KieSession kieSession;
 	private LowLevelInfo lowLevelInfo;
 	private FactHandle lowLevelInfoHandle;
-	private FactHandle simTickHandle;
 	private SimTick simTick;
 	private RuleContext ruleEnv;
 
@@ -30,22 +27,15 @@ public class RuleHighLevelController extends HighLevelController {
 		super(agent, metadata, resourcesFolder);
 		this.agent.setHighLevelData(this);
 		this.ruleEnv = RuleContext.getInstanceFor(this);
-		this.startKieSession(getRulePaths());
+		this.kieSession = this.ruleEnv.createKieSession(this,
+				this.getRulePaths());
+
 	}
 
 	protected String[] getRulePaths()
 	{
 		String[] paths = metadata.get("rules").split(",");
 		return paths;
-	}
-
-	protected void startKieSession(String[] paths)
-	{
-		ArrayList<String> rulesPath = new ArrayList<>();
-		rulesPath.add("rules/common/lowlevel.drl");
-		// rulesPath.add("rules/common/goals.drl");
-		Arrays.stream(paths).forEach(rulesPath::add);
-		this.kieSession = ruleEnv.createKieSession(this, rulesPath);
 	}
 
 	@Override
@@ -68,15 +58,13 @@ public class RuleHighLevelController extends HighLevelController {
 			this.lowLevelInfoHandle = this.kieSession.insert(this.lowLevelInfo);
 			this.kieSession.insert(this);
 			simTick = new SimTick(-1);
-			this.simTickHandle = this.kieSession.insert(simTick);
+			this.kieSession.insert(simTick);
 		}
 		simTick.incTick(+1);
-		this.kieSession.update(simTickHandle,simTick);
-		this.kieSession.update(this.kieSession.getFactHandle(this),this);
+		this.kieSession.update(this.kieSession.getFactHandle(this), this);
+		this.lowLevelInfo.updateInfo(simTick.getTick());
 		this.kieSession.update(this.lowLevelInfoHandle, this.lowLevelInfo);
-		this.kieSession.startProcess("com.massisframework.massis.dasi.simulationflow");
 		this.kieSession.fireAllRules();
-		
 		SessionPseudoClock clock = this.kieSession.getSessionClock();
 		clock.advanceTime(1, TimeUnit.SECONDS);
 	}

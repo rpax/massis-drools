@@ -29,6 +29,7 @@ import com.massisframework.massis.model.managers.EnvironmentManager;
 public class RuleContext {
 
 	private static HashMap<EnvironmentManager, RuleContext> envMap = new HashMap<>();
+	private final HashMap<Class<?>, KieBase> knowledgeBases = new HashMap<>();
 
 	private static enum REKeys {
 		RULE_ENVIRONMENT
@@ -53,12 +54,30 @@ public class RuleContext {
 	public KieSession createKieSession(RuleHighLevelController hlc,
 			Collection<String> rulesPath)
 	{
-		// De momento solo rescue
+
+		KieServices kieServices = KieServices.Factory.get();
+		if (!this.knowledgeBases.containsKey(hlc.getClass()))
+		{
+			this.knowledgeBases.put(hlc.getClass(),this.createKieBase(hlc.getClass(),rulesPath));
+		}
+		KieBase kieBase = this.knowledgeBases.get(hlc.getClass());
+		// Configure and create the KieSession
+		KieSessionConfiguration kieSessionConfiguration = kieServices
+				.newKieSessionConfiguration();
+		kieSessionConfiguration.setOption(ClockTypeOption.get("pseudo"));
+
+		KieSession kieSession = kieBase.newKieSession(kieSessionConfiguration,this.kieEnv);
+		this.ruleAgents.add(hlc);
+		
+		return kieSession;
+	}
+
+	private KieBase createKieBase(
+			Class<? extends RuleHighLevelController> clazz, Collection<String> rulesPath)
+	{
 
 		KieServices kieServices = KieServices.Factory.get();
 
-		// Adds the drools file to the KieFileSystem for necessary compilation
-		// to occur
 		KieFileSystem kieFileSystem = kieServices.newKieFileSystem();
 
 		for (String path : rulesPath)
@@ -66,9 +85,6 @@ public class RuleContext {
 			kieFileSystem.write(ResourceFactory.newClassPathResource(path));
 		}
 
-		
-		kieFileSystem.write(ResourceFactory
-				.newClassPathResource("flows/simulationflow.bpmn2"));
 		// Create the builder for the resources of the File System
 		KieBuilder kieBuilder = kieServices.newKieBuilder(kieFileSystem);
 
@@ -91,19 +107,11 @@ public class RuleContext {
 		// Configure and create a KieContainer that reads the drools files
 		KieBaseConfiguration kieBaseConfiguration = kieServices
 				.newKieBaseConfiguration();
-		kieBaseConfiguration.setOption(EventProcessingOption.STREAM);
+		kieBaseConfiguration.setOption(EventProcessingOption.CLOUD);
 
 		KieBase kieBase = kiecontainer.newKieBase(kieBaseConfiguration);
 
-		// Configure and create the KieSession
-		KieSessionConfiguration kieSessionConfiguration = kieServices
-				.newKieSessionConfiguration();
-		kieSessionConfiguration.setOption(ClockTypeOption.get("pseudo"));
-
-		KieSession kieSession = kieBase.newKieSession(kieSessionConfiguration,
-				this.kieEnv);
-		this.ruleAgents.add(hlc);
-		return kieSession;
+		return kieBase;
 	}
 
 	public static synchronized RuleContext getInstanceFor(
