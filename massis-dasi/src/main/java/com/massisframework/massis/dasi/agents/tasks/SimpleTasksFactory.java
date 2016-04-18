@@ -51,20 +51,13 @@ public class SimpleTasksFactory {
 				.forEach(ep -> ep.insert(new MessageReceived<>(sender, data)));
 	}
 
-	
-	
 	public static <T> void sendMessageMultiples(RuleHighLevelController sender,
 			Collection<Object> receivers, T data)
 	{
-		Iterator<Object> itO = receivers.iterator();
-		while(itO.hasNext())
-		{
-			sendMessage(sender,itO.next(),data);
-		}
+		receivers.forEach(r -> sendMessage(sender, r, data));
+
 	}
-	
-	
-	
+
 	public static <T> void sendMessage(RuleHighLevelController sender,
 			Object receiver, T data)
 	{

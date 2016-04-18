@@ -12,13 +12,11 @@ public class TeamNegotiationToSaveVictim extends TermNegotiation{
 	private VictimToSave victim;
 	private RuleHighLevelController peer;
 	private Integer nResponse;
-	private Integer nNResponse;
-	public TeamNegotiationToSaveVictim(Integer nRe,Integer nNRe ,VictimToSave v,NegotiationStatus negotiationStatus)
+	public TeamNegotiationToSaveVictim(Integer nRe ,VictimToSave v,NegotiationStatus negotiationStatus)
 	{
 		this.victim = v;
 		this.status = negotiationStatus;
 		this.nResponse = nRe;
-		this.nNResponse = nNRe;
 	}
 
 	@Modifies({ "peer" })
@@ -40,12 +38,6 @@ public class TeamNegotiationToSaveVictim extends TermNegotiation{
 		this.nResponse = nResponse-i;
 	}
 	
-	@Modifies({"nNResponse"})
-	public void setNNResponse(int i)
-	{
-		this.nNResponse = nNResponse-i;
-	}
-	
 	
 	public VictimToSave getVictim()
 	{
@@ -57,10 +49,6 @@ public class TeamNegotiationToSaveVictim extends TermNegotiation{
 		return nResponse;
 	}
 	
-	public int getNNResponse()
-	{
-		return nNResponse;
-	}
 	
 	public NegotiationStatus getStatus()
 	{
