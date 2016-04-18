@@ -38,8 +38,8 @@ rule "HiTeam message Received - It is my team."
      						) from entry-point MESSAGING
      	eval($team==$info)
  	then
- 	//  $me.getLooger().info("I have a message from my leader.");
- 	 // $me.getLooger().info("Sending message from Me :"+$me+" -> Leader:"+$sender+".");
+    $me.getLogger().info("I have a message from my leader.");
+ 	 $me.getLogger().info("Sending message from Me :"+$me+" -> Leader:"+$sender+".");
  	  
  	  SimpleTasksFactory.sendMessage($me,$sender,new HiTeamResponseMember($team, $uuid));
 	  delete($mr);
@@ -57,8 +57,8 @@ rule "HiTeam message Received - It isn't my team."
      						) from entry-point MESSAGING
      	not(eval($team==$info))
  	then
- 	 // $me.getLogger().info("I have a message from other team leader.");
- 	  //$me.getLogger().info("Deleting message from inbox.");
+ 	  $me.getLogger().info("I have a message from other team leader.");
+ 	  $me.getLogger().info("Deleting message from inbox.");
  	  delete($mr);
 end
 
@@ -75,7 +75,7 @@ rule "You are part of my team message Received."
      						) from entry-point MESSAGING
      	eval($team==$info)
  	then
- 	  //$me.getLooger().info("My team leader knows that i'm a member of the team.");
+ 	  $me.getLogger().info("My team leader knows that i'm a member of the team.");
  	  delete($mr);
 end
 
@@ -98,8 +98,8 @@ rule "Receive I have no energy message - But I'm not a Leader"
      						) from entry-point MESSAGING
      //already knows that the victim should be saved					
     then
-	 //$me.getLogger().info("Received message from a victim but i'm not a leader.");
-	 //$me.getLooger().info("Deleting message from inbox.");
+	 $me.getLogger().info("Received message from a victim but i'm not a leader.");
+	 $me.getLogger().info("Deleting message from inbox.");
 	 delete($mr);
 end
 
@@ -113,7 +113,7 @@ rule "Received save victim order"
 						) from entry-point MESSAGING
     then
 	  //ñapa demo
-	  //$me.getLogger().info("Received save victim order");
+	  $me.getLogger().info("Received save victim order");
 	  modify($me){setIdle(false)}
 	  insert(new VictimToSave($victim));
 	  delete($mr);
@@ -129,7 +129,7 @@ rule "Save victim - approach"
 	  //ñapa demo
 	  AgentTask task = new MoveToTarget();
 	  task.execute($me,$victim.getLocation());
-	 // $me.getLogger().info("moving to "+$victim+"for saving");
+	 $me.getLogger().info("moving to "+$victim+"for saving");
 end
 
 rule "If another victim is seen, recharge it"
