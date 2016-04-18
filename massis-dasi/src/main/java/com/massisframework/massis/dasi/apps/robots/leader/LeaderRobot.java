@@ -1,6 +1,8 @@
 package com.massisframework.massis.dasi.apps.robots.leader;
 
+import java.util.Iterator;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import org.kie.api.definition.type.PropertyReactive;
 
@@ -40,5 +42,38 @@ public class LeaderRobot extends RobotAgent {
 		return 0;
 	}
 	
+	public RobotAgent getBestIdleAgent(VictimToSave tv)
+	{
+		RobotAgent res = null, aux = null;
+		Iterator<RobotAgent> itR = this.getTeamMembers().iterator();
+			while(itR.hasNext()){
+				aux = itR.next();
+				if(aux.isIdle())
+					if(res==null) 
+						res = aux;
+					else if(res.getLocation().distance2D(tv.getVictim().getLocation()) >
+								aux.getLocation().distance2D(tv.getVictim().getLocation()))
+						res = aux;
+						
+			}
+		return res;
+	}
+	
+	public double getFloatBestIdleAgent(VictimToSave tv)
+	{
+		double res = 99999999, aux = 0;
+		RobotAgent auxR = null;
+		Iterator<RobotAgent> itR = this.getTeamMembers().iterator();
+			while(itR.hasNext()){
+				auxR = itR.next();
+				if(auxR.isIdle())
+					if(res==99999999) 
+						res = auxR.getLocation().distance2D(tv.getVictim().getLocation());
+					else if(res >
+							auxR.getLocation().distance2D(tv.getVictim().getLocation()))
+						res = aux;
+			}
+		return res;
+	}
 	
 }

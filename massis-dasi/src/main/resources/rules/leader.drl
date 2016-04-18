@@ -3,6 +3,7 @@ package com.massisframework.massis.dasi.apps.robots.leader
 
 //std imports
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.concurrent.*;
 import com.massisframework.massis.dasi.lowlevel.LowLevelInfo;
 import com.massisframework.massis.dasi.agents.tasks.AgentTask;
@@ -13,7 +14,8 @@ import com.massisframework.massis.dasi.agents.goals.AgentGoal.GoalState;
 //robots
 import com.massisframework.massis.dasi.apps.robots.*;
 import com.massisframework.massis.dasi.apps.robots.messages.*;
-import com.massisframework.massis.dasi.apps.robots.messages.teamnegotiation.*;
+import com.massisframework.massis.dasi.apps.robots.messages.team.*;
+import com.massisframework.massis.dasi.apps.robots.leader.TermNegotiation.NegotiationStatus;
 //leader
 import com.massisframework.massis.dasi.apps.robots.leader.*;
 import com.massisframework.massis.dasi.apps.robots.leader.info.*;
@@ -25,15 +27,13 @@ import com.massisframework.massis.dasi.apps.robots.subordinate.SubordinateRobot;
 // Goal selection
 //-----------------------------------------------------------------------------
 rule "Generate Goal Memory"
-	
 	when
 		not GoalMemory(  )
  	then
   		insert(new GoalMemory());
 end
 
-rule "Add know my team goal if not present"
-	
+rule "Add know my team goal if not present"	
 	when
 		$gm : GoalMemory( $goals : goals , containsGoalByClass(KnowMyTeam.class)==false)
  	then
@@ -42,50 +42,100 @@ rule "Add know my team goal if not present"
   	    $gm.addGoal(kmt);
 end
 
+
 //=============================================================================
 // Team negotiation rules
 //-----------------------------------------------------------------------------
 // Goal Trigger
 rule "If I dont know my team : The current goal changes."
-	
 	when
-		$me  : LeaderRobot()
+		$me  : LeaderRobot($team : teamName)
 		$gm  : GoalMemory()
 		$kmt : KnowMyTeam ( goalState  == GoalState.PENDING ) from $gm.goals
  	then
  	   String uuid=UUID.randomUUID().toString();
- 	   modify($kmt){ setGoalState( GoalState.SOLVING ) }
- 	   SimpleTasksFactory.sendMessage($me,new JoinTeamRequest(uuid));
+ 	   SimpleTasksFactory.sendMessage($me,new HiTeam($team,uuid));
+  	   modify($kmt){ setGoalState( GoalState.SOLVED ) }	   
 end
 
-rule "Solve the team negotiation"
+
+rule "Received HiTeamResponseMember"
 	when
 		$me		: LeaderRobot()
-		$gm     : GoalMemory()
-		$kmt    : KnowMyTeam ( goalState  == GoalState.SOLVING ) from $gm.goals 
 		$mr		: MessageReceived(
-							data instanceof JoinTeamResponse,
+							data instanceof HiTeamResponseMember,
 							sender instanceof RobotAgent,
 							$sender  : sender,
 							$info : data.info,
  							$uuid : data.uuid
      						) from entry-point MESSAGING
  	then
- 	  SimpleTasksFactory.sendMessage($me,new YouArePartOfMyTeam("1",$uuid));
- 	  modify( $kmt ) { setGoalState ( GoalState.SOLVED) }
+ 	  $me.getLogger().info("Adding "+$sender+" to my pool TeamMembers.");
+ 	  SimpleTasksFactory.sendMessage($me,$sender,new YouArePartOfMyTeam("1",$uuid));
  	  modify($me){ addTeamMember((RobotAgent)$sender)}
  	  delete($mr);
 end
 
+rule "Received HiTeamResponseLeader"
+	when
+		$me		: LeaderRobot()
+		$mr		: MessageReceived(
+							data instanceof HiTeamResponseLeader,
+							sender instanceof RobotAgent,
+							$sender  : sender,
+							$info : data.info,
+ 							$uuid : data.uuid
+     						) from entry-point MESSAGING
+ 	then
+ 	  $me.getLogger().info("Adding "+$sender+" to my pool Leader.");
+ 	  SimpleTasksFactory.sendMessage($me,$sender,new AddedToMyPoolLeader("1",$uuid));
+ 	  modify($me){ addTeamLeader((RobotAgent)$sender)}
+ 	  delete($mr);
+end
+
+rule "Received HiTeam"
+	when
+		$me		: LeaderRobot($team : teamName)
+		$mr		: MessageReceived(
+							data instanceof HiTeam,
+							sender instanceof RobotAgent,
+							$sender  : sender,
+							$info : data.info,
+ 							$uuid : data.uuid
+     						) from entry-point MESSAGING
+     	not(eval($team==$info))
+ 	then
+ 	  $me.getLogger().info("I received a HiTeam message of "+$sender+".");
+ 	  SimpleTasksFactory.sendMessage($me,$sender,new HiTeamResponseLeader($team,$uuid));
+ 	  delete($mr);
+end
+
+
+rule "AddedToPoolLeader"
+	when
+		$me		: LeaderRobot($team : teamName)
+		$mr		: MessageReceived(
+							data instanceof AddedToMyPoolLeader,
+							sender instanceof RobotAgent,
+							$sender  : sender,
+							$info : data.info,
+ 							$uuid : data.uuid
+     						) from entry-point MESSAGING
+ 	then
+    $me.getLogger().info("I have added to the pool leader of "+$sender+".");
+ 	delete($mr);
+end
+
+
+
+
 //==================================================================================
 // Victim saving
 //----------------------------------------------------------------------------------
-
-
-
 rule "Receive I have no energy message"
     when
        $me	: LeaderRobot()
+       $gm : GoalMemory( $goals : goals)
        $mr		: MessageReceived(
 							data instanceof IHaveNoEnergy,
 							sender instanceof RobotAgent,
@@ -93,47 +143,219 @@ rule "Receive I have no energy message"
 							$location : data.info,
 							$uuid : data.uuid
      						) from entry-point MESSAGING
-     //already knows that the victim should be saved					
       not (exists( VictimToSave($sender==victim)))
     then
 	 $me.getLogger().info("Received help message from: "+$sender+", at location "+$location);
-	 // send I am going to help you
-	 SimpleTasksFactory.sendMessage($me,$sender,new IAmGoingToHelpYou($uuid));
+	 // send ACK to victim
+	 SimpleTasksFactory.sendMessage($me,$sender,new IKnowYourState($uuid));
+	 
 	 // Add victim to save
-	 insert(new VictimToSave( (RobotAgent)$sender ));
+	  
+	 insert(new VictimToSave( (RobotAgent)$sender));
+	 $gm.addGoal(new HelpVictim());
 	 delete($mr);
 end
 
-rule "Order save victim"
+
+
+rule "Only one team"
     when
-       $me	: LeaderRobot( $teamMembers : teamMembers )
-       //subordinate is free
-       $vts: VictimToSave  ( $victim : victim)
-       not (exists( VictimAssignedToSubordinate($victim==victim)))
-       $subordinate : SubordinateRobot( idle ==true ) from $teamMembers
-    then
-	   //Send task: Save victim
+       $me	: LeaderRobot($teamLeaders: teamLeaders )
+       $vR : VictimToSave($v : victim)
+       not (exists ( TeamNegotiationToSaveVictim($v==victim)))
+       eval($teamLeaders.size()<=0)
+       eval($me.getFloatBestIdleAgent($vR)<99999999)
+       $gm : GoalMemory( )
+       $kmt : HelpVictim ( goalState  == GoalState.PENDING ) from $gm.goals
+       
+     then
+	   $me.getLogger().info("My team are the better choice to rescue "+$v+".");
+	   $me.getLogger().info("Agent "+$me.getBestIdleAgent($vR)+" have been selected to the rescue.");
 	   String uuid=UUID.randomUUID().toString();
-	   SimpleTasksFactory.sendMessage($me,$subordinate,new SaveVictim($victim,uuid));
-	   insert(new VictimAssignedToSubordinate($victim));
+	   	
+   	   SimpleTasksFactory.sendMessage($me,$me.getBestIdleAgent($vR),new SaveVictim($v,uuid));
+   
+   	   insert(new VictimAssignedToSubordinate($vR));
+   	   
+	   delete($vR);
+	   
+  	   modify($kmt){ setGoalState( GoalState.SOLVED ) }	  
 end
+
+
+
+
+
+
+//Existe una victima a rescatar pero no existen terminos de negociacion.
+//Se crean los terminos y se anuncia una propuesta de rescaste al resto de equipos.
+rule "Negotiation save victim not created"
+    when
+       $me	: LeaderRobot($teamLeaders: teamLeaders )
+       $vR : VictimToSave($v : victim)
+       not (exists ( TeamNegotiationToSaveVictim($v==victim)))
+       eval($teamLeaders.size()>0)
+     then
+		insert(new TeamNegotiationToSaveVictim($teamLeaders.size(),$teamLeaders.size(),$vR,NegotiationStatus.NOT_STARTED));
+		delete($vR);
+end
+
+
+
+rule "Negotiation not started."
+	when
+       $me	: LeaderRobot( $teamLeaders : teamLeaders )
+		$tnl : TeamNegotiationToSaveVictim(
+					$victim : victim,
+					status==NegotiationStatus.NOT_STARTED)
+	then
+		String uuid=UUID.randomUUID().toString();
+	   	$me.getLogger().info("Sending save victim negotiation terms.");
+	   	//FALTA IMPLEMENTAR ESTA FUNCION.
+	   	SimpleTasksFactory.sendMessageMultiples($me,$teamLeaders, 
+	   		new SaveVictimNegotiationTerms($me.getFloatBestIdleAgent($victim),uuid));	
+	   		
+		modify($tnl){setStatus(NegotiationStatus.WAITING_FOR_RESPONSE)}
+end
+
+
+
+//Recibo una propuesta que es peor que la mia
+rule "I win part of the match."
+	when
+       $me	: LeaderRobot()
+       $tnl : TeamNegotiationToSaveVictim(
+					$victim : victim,
+					status==NegotiationStatus.WAITING_FOR_RESPONSE)
+	   $mr		: MessageReceived(
+								data instanceof SaveVictimNegotiationTerms,
+								sender instanceof RobotAgent,
+								$sender  : sender,
+								$tr : data.info,
+								$uuid : data.uuid
+     						) from entry-point MESSAGING
+		eval($me.getFloatBestIdleAgent($victim)<$tr)
+	then
+		$me.getLogger().info("My team win one match.");
+		String uuid=UUID.randomUUID().toString();
+	   	SimpleTasksFactory.sendMessage($me,$sender,new DelTeamNegotiation($tnl,uuid));
+		modify($tnl){setNResponse(1)}
+	   delete($mr);		
+end
+
+
+//Recibo una propuesta sin evaluacion. Yo no tengo evaluacion pero me guardo el derecho de reiniciar la negociacion.
+rule "No evaluation."
+	when
+       	$me	: LeaderRobot()
+		$tnl : TeamNegotiationToSaveVictim(
+					$victim : victim,
+					status==NegotiationStatus.WAITING_FOR_RESPONSE)
+	   $mr		: MessageReceived(
+								data instanceof SaveVictimNegotiationTerms,
+								sender instanceof RobotAgent,
+								$sender  : sender,
+								$tr : data.info,
+								$uuid : data.uuid
+     						) from entry-point MESSAGING
+		eval($me.getFloatBestIdleAgent($victim)==$tr)		
+		eval($tr==99999999)
+	then
+	   	$me.getLogger().info("All agents of "+$sender+"'s teams are busy.");
+		String uuid=UUID.randomUUID().toString();
+	   	SimpleTasksFactory.sendMessage($me,$sender,new DelTeamNegotiation($tnl,uuid));
+		modify($tnl){setNNResponse(1)}
+		modify($tnl){setNResponse(1)}		
+	    delete($mr);		
+end
+
+
+//Total de negativas == 0
+rule "No evaluation. RESET"
+	when
+       $me	: LeaderRobot()
+       $tnl : TeamNegotiationToSaveVictim(
+       				$nR : nNResponse,
+       				$victim : victim,
+       				status==NegotiationStatus.WAITING_FOR_RESPONSE)
+       eval($nR<=0)
+	   eval($me.getFloatBestIdleAgent($victim)==99999999)
+	   then
+	   	$me.getLogger().info("All agents are busy. Restarting actions to obtain time based solution.");
+	   	insert(new VictimToSave( (RobotAgent)$victim.getVictim()));
+		delete($tnl);
+end
+
+
+
+
+
+//Recibo que he perdido en la evaluacion de la negociacion.
+rule "I lose the match."
+	when
+       $me	: LeaderRobot()
+       		$gm  : GoalMemory()
+       $tnl : TeamNegotiationToSaveVictim($victim : victim,
+       			 status==NegotiationStatus.WAITING_FOR_RESPONSE)
+	   $mr		: MessageReceived(
+								data instanceof DelTeamNegotiation,
+								sender instanceof RobotAgent,
+								$sender  : sender,
+								$tr : data.info,
+								$uuid : data.uuid
+     						) from entry-point MESSAGING
+ 		$kmt : HelpVictim ( goalState  == GoalState.PENDING ) from $gm.goals
+     						
+	then
+	   $me.getLogger().info("My team lose the options for rescue "+$victim.getVictim()+".");
+	
+	   delete($tnl);
+	   delete($mr);
+  	   modify($kmt){ setGoalState( GoalState.SOLVED ) }	   
+end
+
+
+rule "I win the match. - Order to Save Victim."
+	when
+       $me	: LeaderRobot()
+       		$gm  : GoalMemory()
+       
+       $tnl : TeamNegotiationToSaveVictim(
+       			$victim : victim,
+       			$nR : nResponse,
+       			status==NegotiationStatus.WAITING_FOR_RESPONSE)
+       	eval($nR<=0)
+	   $kmt : HelpVictim ( goalState  == GoalState.PENDING ) from $gm.goals
+	   eval($me.getFloatBestIdleAgent($victim)<99999999)
+	then
+	   $me.getLogger().info("My team are the better choice to rescue "+$victim+".");
+	   $me.getLogger().info("Agent "+$me.getBestIdleAgent($victim)+" have been selected to the rescue.");
+	
+	   String uuid=UUID.randomUUID().toString();	
+   	   SimpleTasksFactory.sendMessage($me,$me.getBestIdleAgent($victim),new SaveVictim($victim.getVictim(),uuid));
+   
+   	   insert(new VictimAssignedToSubordinate($victim));
+	   
+	   delete($tnl);
+  	   modify($kmt){ setGoalState( GoalState.SOLVED ) }	   
+end
+
 
 rule "Receive notification about victim saved"
     when
        $me	: LeaderRobot()
        $mr	: MessageReceived(
 							data instanceof VictimSaved,
-							sender instanceof RobotAgent,
+							$sender : sender instanceof RobotAgent,
 							$victim : data.info
      						) from entry-point MESSAGING
      						
-     	$vts : VictimToSave  ( victim == $victim)
      	$vas : VictimAssignedToSubordinate(victim == $victim)
     then
 	   //Send task: Save victim
+	   $me.getLogger().info("Received notification about victim savedAdding by "+$sender+".");
 	   delete($mr);
 	   delete($vas);
-	   delete($vts);
 end
 
 

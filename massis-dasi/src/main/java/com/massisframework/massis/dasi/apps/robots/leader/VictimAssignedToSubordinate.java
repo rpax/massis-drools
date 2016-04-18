@@ -5,9 +5,10 @@ import com.massisframework.massis.dasi.apps.robots.RobotAgent;
 public class VictimAssignedToSubordinate {
 	private RobotAgent victim;
 
-	public VictimAssignedToSubordinate(RobotAgent victim)
+	public VictimAssignedToSubordinate(VictimToSave VTSictim)
 	{
-		this.victim = victim;
+		
+		this.victim = VTSictim.getVictim();
 	}
 
 	public RobotAgent getVictim()

@@ -63,12 +63,9 @@ rule "Move to the target (if has energy)"
     then
 	  AgentTask task = new MoveToTarget();
 	  task.execute($me,$targetLoc);
-	  //$me.getLogger().info("moving to "+$targetLoc);
-	  //$me.getLogger().info("Energy: "+$energy);
 end
 
 rule "Send help me message due to lack of energy"
-	
     when
         $me : VictimRobot(energy <= 0 )
     then
@@ -76,6 +73,21 @@ rule "Send help me message due to lack of energy"
 	   SimpleTasksFactory.sendMessage($me,new IHaveNoEnergy($me.getLocation(), uuid));
 end
 
+
+rule "Received ACK message"
+    when
+        $me : VictimRobot(energy <= 0 )
+        $mr		: MessageReceived(
+						data instanceof IKnowYourState,
+						sender instanceof RobotAgent,
+						$sender  : sender,
+						$location : data.info,
+						$uuid : data.uuid
+ 					) from entry-point MESSAGING
+    then
+	 $me.getLogger().info("Received ACK from "+$sender+". I'm hopeful.");
+	 delete($mr);
+end
 
 
 
