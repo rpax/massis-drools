@@ -152,7 +152,9 @@ rule "Receive I have no energy message"
 	 // Add victim to save
 	  
 	 insert(new VictimToSave( (RobotAgent)$sender));
-	 $gm.addGoal(new HelpVictim());
+	 HelpVictim hv = new HelpVictim();
+	 insert(hv);
+	 $gm.addGoal(hv);
 	 delete($mr);
 end
 
