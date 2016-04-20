@@ -133,17 +133,7 @@ rule "AddedToPoolLeader"
 end
 
 
-rule "Only one team"
-   when
-       //Soy un lider
-       $me	: LeaderRobot($teamLeaders: teamLeaders )
-       //No hay mas lideres en el campo.
-       eval($teamLeaders.size()<=0)
-       not(exists(OneTeam()))
-   then
-   	   $me.getLogger().info("Solo hay un equipo en el escenario.");
-       insert(new OneTeam());
-end
+
 
 //==================================================================================
 // Victim saving
@@ -189,8 +179,8 @@ rule "Only one team - Save victim"
        $gm : GoalMemory( )
        //Soy un lider.
        $me	: LeaderRobot($teamLeaders: teamLeaders )
-	   //Solo hay un equipo.
-	   OneTeam()   
+       //No hay mas lideres en el campo.
+       eval($teamLeaders.size()<=0)
        //Se ha reconocido la victima
        $vR : VictimToSave($v : victim)
        //Mi evaluacion para el rescate es que es probable.
@@ -347,14 +337,15 @@ rule "I lose the match."
  		//Tengo como objetivo ayudar a la victima.
  		$kmt : HelpVictim ( 
  				$victim.getVictim()==goalData,
- 				goalState  == GoalState.PENDING ) from $gm.goals					
+ 				goalState  == GoalState.PENDING ) from $gm.goals
+ 							
 	then
 	   $me.getLogger().info("My team lose the options for rescue "+$victim.getVictim()+".");	
 	   //Borro todo mi conocimiento respecto a este problema.
 	   delete($tnl);
 	   delete($mr);
   	   $gm.getGoals().remove($kmt);
-	   delete($kmt);
+	   //delete($kmt);
 	   //update($gm);
 end
 
