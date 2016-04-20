@@ -25,6 +25,8 @@ import com.massisframework.massis.dasi.apps.robots.leader.info.*;
 import com.massisframework.massis.dasi.apps.robots.leader.goals.*;
 //subordinate
 import com.massisframework.massis.dasi.apps.robots.subordinate.SubordinateRobot;
+import com.massisframework.massis.dasi.apps.robots.subordinate.goals.*;
+
 //victim
 import com.massisframework.massis.dasi.apps.robots.victim.VictimRobot;
 //declare any global variables here
@@ -372,7 +374,7 @@ rule "I win the match. - Order to Save Victim."
 	   	$kmt : HelpVictim ( goalState  == GoalState.PENDING ) from $gm.goals
 	   	not(eval($me.getFloatBestIdleAgent($victim)==-1))
 	then
-	   	$me.getLogger().info("My team are the better choice to rescue "+$victim+".");
+	   	$me.getLogger().info("My team is the better choice to rescue "+$victim+".");
 	   	$me.getLogger().info("Agent "+$me.getBestIdleAgent($victim)+" have been selected to the rescue.");
 	
 	   	String uuid=UUID.randomUUID().toString();	
