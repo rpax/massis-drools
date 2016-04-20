@@ -14,12 +14,16 @@ import com.massisframework.massis.dasi.agents.goals.AgentGoal.GoalState;
 //robots
 import com.massisframework.massis.dasi.apps.robots.*;
 import com.massisframework.massis.dasi.apps.robots.messages.*;
-import com.massisframework.massis.dasi.apps.robots.messages.team.*;
-import com.massisframework.massis.dasi.apps.robots.leader.TermNegotiation.NegotiationStatus;
+import com.massisframework.massis.dasi.apps.robots.messages.getHelp.*;
+import com.massisframework.massis.dasi.apps.robots.messages.knowTeam.*;
+import com.massisframework.massis.dasi.apps.robots.messages.orders.*;
+import com.massisframework.massis.dasi.apps.robots.messages.saveVictimNegotiation.*;
 //leader
+import com.massisframework.massis.dasi.apps.robots.leader.info.TermNegotiation.NegotiationStatus;
 import com.massisframework.massis.dasi.apps.robots.leader.*;
 import com.massisframework.massis.dasi.apps.robots.leader.info.*;
-import com.massisframework.massis.dasi.apps.robots.leader.tasks.*;
+import com.massisframework.massis.dasi.apps.robots.leader.goals.*;
+//subordinate
 import com.massisframework.massis.dasi.apps.robots.subordinate.SubordinateRobot;
 //victim
 import com.massisframework.massis.dasi.apps.robots.victim.VictimRobot;
@@ -129,7 +133,17 @@ rule "AddedToPoolLeader"
 end
 
 
-
+rule "Only one team"
+   when
+       //Soy un lider
+       $me	: LeaderRobot($teamLeaders: teamLeaders )
+       //No hay mas lideres en el campo.
+       eval($teamLeaders.size()<=0)
+       not(exists(OneTeam()))
+   then
+   	   $me.getLogger().info("Solo hay un equipo en el escenario.");
+       insert(new OneTeam());
+end
 
 //==================================================================================
 // Victim saving
@@ -149,8 +163,6 @@ rule "Receive I have no energy message"
      						) from entry-point MESSAGING
        //no he reconocido todavia a la victima.
        not (exists( VictimToSave( $sender ==  victim)))
-       
-       //not (exists( HelpVictim ( $sender : goalData)))
     then
 	   $me.getLogger().info("Received help message from: "+$sender+", at location "+$location);
 	   // send ACK to victim
@@ -170,25 +182,24 @@ end
 
 
 
-rule "Only one team"
-    when
-       //Soy un lider
+
+
+rule "Only one team - Save victim"
+	when
+       $gm : GoalMemory( )
+       //Soy un lider.
        $me	: LeaderRobot($teamLeaders: teamLeaders )
+	   //Solo hay un equipo.
+	   OneTeam()   
        //Se ha reconocido la victima
        $vR : VictimToSave($v : victim)
-       //No se ha empezado la negociacion
-       not (exists ( TeamNegotiationToSaveVictim($v==victim)))
-       //No hay mas lideres en el campo.
-       eval($teamLeaders.size()<=0)
        //Mi evaluacion para el rescate es que es probable.
-       eval($me.getFloatBestIdleAgent($vR)<99999999)
-       $gm : GoalMemory( )
+       eval($me.getFloatBestIdleAgent($vR)>-1)
        //Existe un objetivo en estado pendiente para rescatar a esta victima.
        $kmt : HelpVictim ( $v == goalData, 
        					goalState  == GoalState.PENDING ) from $gm.goals
-       
      then
-	   $me.getLogger().info("My team are the better choice to rescue "+$v+" why only are one team.");
+       $me.getLogger().info("My team are the better choice to rescue "+$v+" why only are one team.");
 	   $me.getLogger().info("Agent "+$me.getBestIdleAgent($vR)+" have been selected to the rescue.");
 	   String uuid=UUID.randomUUID().toString();
    	   //Mando una orden de rescate al agente con mejor evaluacion para que rescate al agente en cuestion.
@@ -199,9 +210,6 @@ rule "Only one team"
 	   delete($vR);
   	   modify($kmt){ setGoalState( GoalState.SOLVED ) }	  
 end
-
-
-
 
 
 
@@ -239,7 +247,6 @@ rule "Negotiation not started."
 	then
 		String uuid=UUID.randomUUID().toString();
 	   	$me.getLogger().info("Sending save victim negotiation terms.");
-	   	
 	   	//Mandar a todos los lideres la peticion de negociacion, junto a la valoracion de la tarea.
 	   	SimpleTasksFactory.sendMessageMultiples($me,$teamLeaders, 
 	   		new SaveVictimNegotiationTerms($me.getFloatBestIdleAgent($victim),uuid));	
@@ -301,7 +308,7 @@ rule "No evaluation."
 					$vi.getVictim() == $v,
 					status==NegotiationStatus.WAITING_FOR_RESPONSE)	
 		//Mi evaluacion es tambien "imposible"
-		eval($me.getFloatBestIdleAgent($vi)==999999999)		
+		eval($me.getFloatBestIdleAgent($vi)==-1)		
 	then
 	   	$me.getLogger().info("All agents are busy. Restarting actions to obtain time based solution.");
 	   	//Elimino el objetivo.
@@ -363,7 +370,7 @@ rule "I win the match. - Order to Save Victim."
        			status==NegotiationStatus.WAITING_FOR_RESPONSE)
        	eval($nR<=0)
 	   	$kmt : HelpVictim ( goalState  == GoalState.PENDING ) from $gm.goals
-	   	eval($me.getFloatBestIdleAgent($victim)<99999999)
+	   	not(eval($me.getFloatBestIdleAgent($victim)==-1))
 	then
 	   	$me.getLogger().info("My team are the better choice to rescue "+$victim+".");
 	   	$me.getLogger().info("Agent "+$me.getBestIdleAgent($victim)+" have been selected to the rescue.");

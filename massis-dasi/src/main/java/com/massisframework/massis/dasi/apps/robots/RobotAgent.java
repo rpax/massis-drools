@@ -39,6 +39,7 @@ public abstract class RobotAgent extends RuleHighLevelController {
 			String resourcesFolder)
 	{
 		super(agent, metadata, resourcesFolder);
+		teamName = metadata.get("TEAM");
 		this.logger = Logger.getLogger("RobotAgent_" + this.agent.getID());
 		this.energy = 1000;
 		agent.setMaxSpeed(agent.getMaxSpeed()+agent.getMaxSpeed()*Math.random());

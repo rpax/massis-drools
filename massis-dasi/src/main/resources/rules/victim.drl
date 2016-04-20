@@ -1,37 +1,37 @@
 //created on: Apr 16, 2016
 package com.massisframework.massis.dasi.apps.robots.victim
 
-//
 import java.util.*;
 import java.util.concurrent.*;
 import com.massisframework.massis.dasi.lowlevel.LowLevelInfo;
+import com.massisframework.massis.dasi.agents.goals.*;
 import com.massisframework.massis.dasi.agents.tasks.AgentTask;
 import com.massisframework.massis.dasi.agents.tasks.SimpleTasksFactory;
 import com.massisframework.massis.dasi.events.messages.MessageReceived;
-import com.massisframework.massis.dasi.apps.robots.commontasks.*;
-import com.massisframework.massis.dasi.apps.robots.*;
-import com.massisframework.massis.dasi.apps.robots.messages.*;
-import com.massisframework.massis.dasi.agents.goals.*;
 import com.massisframework.massis.model.agents.LowLevelAgent;
 import com.massisframework.massis.model.building.SimRoom;
 import com.massisframework.massis.model.location.Location;
+
+//Robots
+import com.massisframework.massis.dasi.apps.robots.*;
+import com.massisframework.massis.dasi.apps.robots.messages.*;
+import com.massisframework.massis.dasi.apps.robots.messages.getHelp.*;
+import com.massisframework.massis.dasi.apps.robots.victim.info.*;
+import com.massisframework.massis.dasi.apps.robots.commontasks.*;
+
+
 
 //ruleflow-group([^"]*["][^"]+["])
 
 //declare any global variables here
 rule "Generate Goal Memory"
-	
 	when
 		not GoalMemory(  )
  	then
   		insert(new GoalMemory());
-  		System.out.println("HEY");
 end
 
-
-
-rule "Select target"
-	
+rule "Select target"	
     when
     	$me : VictimRobot()
     	LowLevelInfo($lla : lowLevelAgent)
@@ -40,7 +40,6 @@ rule "Select target"
     	SimRoom rndRoom = $lla.getRandomRoom();
         Location rndLoc = rndRoom.getRandomLoc();
 		CurrentTarget currentTarget = new CurrentTarget(rndLoc);
-		$me.getLogger().info("SELECTING TARGET");
 		insert(currentTarget);
 end
 
@@ -67,12 +66,22 @@ end
 
 rule "Send help me message due to lack of energy"
     when
-        $me : VictimRobot(energy <= 0 )
+       not(exists(RequestVerified()))
+       $me : VictimRobot(energy <= 0 )
     then
-       String uuid=UUID.randomUUID().toString();
-	   SimpleTasksFactory.sendMessage($me,new IHaveNoEnergy($me.getLocation(), uuid));
+    	$me.getLogger().info("Sending broadcast help me message");
+       	String uuid=UUID.randomUUID().toString();
+	   	SimpleTasksFactory.sendMessage($me,new IHaveNoEnergy($me.getLocation(), uuid));
 end
 
+
+rule "I have energy."
+    when
+       $re : RequestVerified()
+       $me : VictimRobot(energy > 0 )
+    then
+   	  delete($re);
+end
 
 rule "Received ACK message"
     when
@@ -86,8 +95,6 @@ rule "Received ACK message"
  					) from entry-point MESSAGING
     then
 	 $me.getLogger().info("Received ACK from "+$sender+". I'm hopeful.");
+ 	 insert(new RequestVerified());
 	 delete($mr);
 end
-
-
-
