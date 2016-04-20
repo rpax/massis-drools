@@ -2,6 +2,7 @@ package com.massisframework.massis.dasi.apps.robots.leader;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import org.kie.api.definition.type.PropertyReactive;
@@ -47,19 +48,27 @@ public class LeaderRobot extends RobotAgent {
 	{
 		RobotAgent res = null, aux = null;
 		Iterator<RobotAgent> itR = this.getTeamMembers().iterator();
+		/*
+			aux = this.getTeamMembers().stream()
+					.filter(robot -> 
+							robot.isIdle())
+					.max((p1,p2)  ->
+							Double.compare(p1.distanceTo(tv.getVictim().getLocation()),
+											p2.distanceTo(tv.getVictim().getLocation()))).get();
+			if(aux!=null)
+				return aux;
+			return null;
+		 */
 		while(itR.hasNext()){
-    	  aux = itR.next();
-	   	  if(aux.isIdle())
-		  {
-	   	    if(res==null) 
-			{	
-		      res = aux;
-		  	}
-		 	else if(res.getLocation().distance2D(tv.getVictim().getLocation()) > aux.getLocation().distance2D(tv.getVictim().getLocation()))
-			{	
-			  res = aux;
-			}
-		  }		
+			aux = itR.next();
+	   	  	if(aux.isIdle())
+	   	  	{
+	   	  		if(res==null) 	
+	   	  			res = aux;
+	   	  		else if(res.distanceTo(tv.getVictim().getLocation()) 
+		 			> aux.distanceTo(tv.getVictim().getLocation()))
+	   	  			res = aux;
+	   	  	}
 		}
 		return res;
 	}
@@ -69,20 +78,28 @@ public class LeaderRobot extends RobotAgent {
 		double res = -1, aux = 0;
 		RobotAgent auxR = null;
 		Iterator<RobotAgent> itR = this.getTeamMembers().iterator();
+		
+		/*
+			auxR = this.getTeamMembers().stream()
+					.filter(robot -> 
+							robot.isIdle())
+					.max((p1,p2)  ->
+							Double.compare(p1.distanceTo(tv.getVictim().getLocation()),
+											p2.distanceTo(tv.getVictim().getLocation()))).get();
+			if(auxR!=null)
+				return auxR.distanceTo(tv.getVictim().getLocation());
+			return -1;
+		*/
 		while(itR.hasNext()){
-		  auxR = itR.next();
-		  if(auxR.isIdle())
-		  {
-			if(res==-1){
-				res = auxR.getLocation().distance2D(tv.getVictim().getLocation());
-			}
-			else if(res > auxR.getLocation().distance2D(tv.getVictim().getLocation()))
+			auxR = itR.next();
+			if(auxR.isIdle())
 			{
-				res = aux;
+				if(res==-1)
+					res = auxR.distanceTo(tv.getVictim().getLocation());
+				else if(res > auxR.distanceTo(tv.getVictim().getLocation()))
+					res = aux;
 			}
-		  }
 		}
 		return res;
 	}
-	
 }

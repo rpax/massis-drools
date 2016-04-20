@@ -302,15 +302,15 @@ rule "No evaluation."
 	then
 	   	$me.getLogger().info("All agents are busy. Restarting actions to obtain time based solution.");
 	   	//Elimino el objetivo.
-	   	$gm.getGoals().remove($kmt);
+	   	//$gm.getGoals().remove($kmt);
 		//Elimino el hecho.
-		delete($kmt);
+		//delete($kmt);
 		//Elimino la negociacion.
 		delete($tnl);
 		//Introduzco de nuevo que existe una victima que salvar.
 		insert(new VictimToSave( (RobotAgent)$v));
 		
-		//update($gm);		
+		update($gm);		
 end
 
 
