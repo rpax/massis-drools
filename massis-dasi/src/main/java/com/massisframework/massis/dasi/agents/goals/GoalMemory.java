@@ -35,10 +35,24 @@ public class GoalMemory {
 
 	public boolean containsGoalByClass(Class<? extends AgentGoal<?>> clazz)
 	{
+		/*
+		System.out.println(this.goals.stream().filter(clazz::isInstance));
+		System.out.println(this.goals.stream().filter(clazz::isInstance).findAny());
+		System.out.println(this.goals.stream().filter(clazz::isInstance).findAny().isPresent());
+		*/
+		
 		return this.goals.stream()
 				.filter(clazz::isInstance)
 				.findAny()
 				.isPresent();
+	}
+	
+	public String toString(){
+		String aux = "";
+		for( AgentGoal<?> goal : this.goals ){
+			aux += goal.getClass().toString() + ", " + goal.getGoalState() +"\n";
+		}
+		return aux;
 	}
 
 }

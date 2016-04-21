@@ -9,170 +9,132 @@ import com.massisframework.massis.dasi.agents.tasks.AgentTask;
 import com.massisframework.massis.dasi.agents.tasks.SimpleTasksFactory;
 import com.massisframework.massis.dasi.events.messages.MessageReceived;
 import com.massisframework.massis.model.agents.LowLevelAgent;
-import com.massisframework.massis.dasi.agents.goals.*;
-import com.massisframework.massis.dasi.agents.goals.AgentGoal.GoalState;
 //robots
 import com.massisframework.massis.dasi.apps.robots.*;
 import com.massisframework.massis.dasi.apps.robots.messages.*;
-import com.massisframework.massis.dasi.apps.robots.messages.orders.*;
-import com.massisframework.massis.dasi.apps.robots.messages.knowTeam.*;
-import com.massisframework.massis.dasi.apps.robots.messages.getHelp.*;
-
+import com.massisframework.massis.dasi.apps.robots.messages.teamnegotiation.*;
+import com.massisframework.massis.dasi.apps.robots.messages.teamnegotiation.TeamNegotiationInfo.NegotiationStatus;
+import com.massisframework.massis.dasi.apps.robots.messages.teamnegotiation.TeamNegotiationInfo;
 import com.massisframework.massis.dasi.apps.robots.subordinate.*;
 import com.massisframework.massis.dasi.apps.robots.subordinate.info.*;
-import com.massisframework.massis.dasi.apps.robots.subordinate.goals.*;
-
+import com.massisframework.massis.dasi.apps.robots.subordinate.tasks.*;
 import com.massisframework.massis.dasi.apps.robots.victim.*;
 
-import com.massisframework.massis.dasi.apps.robots.leader.info.VictimToSave;
+import com.massisframework.massis.dasi.apps.robots.leader.VictimToSave;
 import com.massisframework.massis.dasi.apps.robots.commontasks.*;
-
-//=============================================================================
-// Goal selection
-//-----------------------------------------------------------------------------
-rule "Generate Goal Memory"
-	when
-		not GoalMemory(  )
- 	then
-  		insert(new GoalMemory());
-end
 
 
 //=============================================================================
 // Team negotiation rules
 //-----------------------------------------------------------------------------
 
-rule "HiTeam message Received - It is my team."
+rule "Initiate team negotiation"
+	
 	when
-		$me   : SubordinateRobot($team: teamName)
-		$mr : MessageReceived(
-					data instanceof HiTeam,
-					$sender  : sender,
-					$team == data.info,
- 					$uuid    :  data.uuid
-     			) from entry-point MESSAGING
- 	then
-    	$me.getLogger().info("I have a message from my leader.");
- 	 	$me.getLogger().info("Sending message from Me :"+$me+" -> Leader:"+$sender+".");  
- 	  	SimpleTasksFactory.sendMessage($me,$sender,new HiTeamResponseMember($team, $uuid));
-	  	delete($mr);
+		not TeamNegotiationInfo()
+	then
+		insert(new TeamNegotiationInfo(NegotiationStatus.NOT_STARTED));
 end
 
-
-rule "HiTeam message Received - It isn't my team."
+rule "Team join request received - I dont have a team"
+	
 	when
-		$me : SubordinateRobot($team: teamName)
+		$me   : SubordinateRobot()
+		$tni : TeamNegotiationInfo( status == NegotiationStatus.NOT_STARTED )
 		$mr : MessageReceived(
-				data instanceof HiTeam,
-				$sender  : sender,
-				$info : data.info,
- 				$uuid    :  data.uuid
-     		) from entry-point MESSAGING
-     	not(eval($team==$info))
+							data instanceof JoinTeamRequest,
+							$sender  : sender,
+							$info : data.info,
+ 							$uuid    :  data.uuid
+     						) from entry-point MESSAGING
+     			
  	then
- 	  //$me.getLogger().info("I have a message from other team leader.");
- 	  //$me.getLogger().info("Deleting message from inbox.");
- 	  delete($mr);
+ 	  $me.getLogger().info("Request from "+$sender+" about team : "+$info);
+ 	  $me.getLogger().info("I am interested, because I have no team");
+ 	  
+ 	  AgentTask task = new EnviarRespuestaHola();
+	  task.execute($me, new JoinTeamInfo($tni, $sender, $uuid) );
+	  
+	  delete($mr);
+	  
 end
 
-
-
-rule "You are part of my team message Received."
+rule "Team join request received - I am waiting for response"
+	
 	when
-		$me : SubordinateRobot($team : teamName)
-		$mr : MessageReceived(
-				data instanceof YouArePartOfMyTeam,
-				$sender  : sender,
-				$team == data.info,
- 				$uuid    :  data.uuid
-     		) from entry-point MESSAGING
+		$me   : SubordinateRobot()
+		$tni	:	TeamNegotiationInfo(status == NegotiationStatus.WAITING_FOR_RESPONSE,$peer:peer)
+		$mr		:	MessageReceived(
+									data instanceof YouArePartOfMyTeam,
+									$uuid : data.uuid,
+									$teamName : data.info,
+									sender==$peer,
+									$sender : sender
+									) from entry-point MESSAGING
  	then
- 	  $me.getLogger().info("My team leader knows that i'm a member of the team.");
- 	  delete($mr);
+ 	  $me.getLogger().info("Received YouArePartOfMyTeam message from "+$sender+". Joining team "+$teamName);
+ 	  $me.getLogger().info("Finishing negotiation");
+ 	 
+ 	  AgentTask task = new UnirseEquipo();
+	  task.execute($me, new JoinTeamInfo($tni, $sender, $uuid, $teamName) );
+ 	 
+	  delete($mr);
+	  
 end
-
-
-
-//=============================================================================
-// Operational order negotiation rules
-//-----------------------------------------------------------------------------
-
-
-rule "Receive I have no energy message - But I'm not a Leader"
-    when
-       $me	: SubordinateRobot()
-       $mr		: MessageReceived(
-					data instanceof IHaveNoEnergy,
-					sender instanceof RobotAgent,
-					$sender  : sender,
-					$location : data.info,
-					$uuid : data.uuid
-     		) from entry-point MESSAGING
-     //already knows that the victim should be saved					
-    then
-	 //$me.getLogger().info("Received message from a victim but i'm not a leader.");
-	 //$me.getLogger().info("Deleting message from inbox.");
-	 delete($mr);
-end
-
 
 rule "Received save victim order"
     when
-	  	$gm : GoalMemory( $goals : goals , containsGoalByClass(HelpVictim.class)==false)
-	   	$me	: SubordinateRobot(idle == true)
-       	$mr	:	MessageReceived(
-				data instanceof SaveVictim,
-				$victim : data.info
-			) from entry-point MESSAGING
+       $me	: SubordinateRobot(idle == true)
+       $mr	:	MessageReceived(
+						data instanceof SaveVictim,
+						$victim : data.info
+						) from entry-point MESSAGING
     then
 	  //ñapa demo
-	  	$me.getLogger().info("Received save victim order");
-	  	modify($me){setIdle(false)}
-	  	insert(new VictimToSave($victim));
-	  
-  		HelpVictim kmt = new HelpVictim((VictimRobot)$victim);
- 		insert(kmt);
-  	    $gm.addGoal(kmt);
-	  	delete($mr);
+	  $me.getLogger().info("Received save victim order");
+	  modify($me){setIdle(false)}
+	  insert(new VictimToSave($victim));
+	  delete($mr);
+	 
 end
 
 rule "Save victim - approach"
-    when	
-		$gm  : GoalMemory()
-		$kmt : HelpVictim ( goalState  == GoalState.PENDING ) from $gm.goals
-    	VictimToSave($victim : victim)
-       	$me	:   SubordinateRobot()
-       	LowLevelInfo( location.distance2D($victim.getLocation())>1000)
+    when
+       VictimToSave($victim : victim)
+       $me	:   SubordinateRobot()
+       LowLevelInfo( location.distance2D($victim.getLocation())>1000)
     then
-	  	//ñapa demo
-	  	AgentTask task = new MoveToTarget();
-	  	task.execute($me,$victim.getLocation());
-	 	//$me.getLogger().info("moving to "+$victim+"for saving");
+	  //ñapa demo
+	  AgentTask task = new MoveToTarget();
+	  task.execute($me,$victim.getLocation());
+	 // $me.getLogger().info("moving to "+$victim+"for saving");
 end
-/*
+
 rule "If another victim is seen, recharge it"
     when
+      $me	:   SubordinateRobot()
       LowLevelInfo( $avr: agentsInVisionRadio)
       LowLevelAgent( $victim : highLevelData  instanceof VictimRobot) from $avr
     then
- 	  ((VictimRobot)$victim).setEnergy(1000);
+ 	  AgentTask task = new Recargar();
+	  task.execute($me,$victim);
 end
-*/
+
 rule "Save victim - recharge"
     when
-    	$gm  : GoalMemory()
-	   	$kmt : HelpVictim ( goalState  == GoalState.PENDING ) from $gm.goals
-       	$vts: VictimToSave($victim : victim)
-       	$me	:   SubordinateRobot()
-       	LowLevelInfo( location.distance2D($victim.getLocation())<=1000)
+       $vts: VictimToSave($victim : victim)
+       $me	:   SubordinateRobot()
+       LowLevelInfo( location.distance2D($victim.getLocation())<=1000)
     then
-	  	$victim.setEnergy(1000);
-	  	$me.getLogger().info("updating energy");
-	  	delete($vts);
-	  	modify($me){setIdle(true)}
-	  	String uuid=UUID.randomUUID().toString();
-	  	SimpleTasksFactory.sendMessage($me,new VictimSaved($victim, uuid));
-  	  	modify($kmt){ setGoalState( GoalState.SOLVED ) }	   
+	  AgentTask r_task = new Recargar();
+	  r_task.execute($me,$victim);
+	  
+	  $me.getLogger().info("updating energy");
+	  delete($vts);
+	  modify($me){setIdle(true)}
+	  
+	  AgentTask idle_task = new EnviarYaEstoyDisponible();
+	  idle_task.execute($me,$victim);
 end
 
 

@@ -7,6 +7,7 @@ import com.massisframework.massis.dasi.agents.tasks.SimpleTasksFactory;
 import com.massisframework.massis.dasi.apps.robots.RobotAgent;
 import com.massisframework.massis.dasi.apps.robots.commontasks.MoveToTarget;
 import com.massisframework.massis.dasi.apps.robots.commontasks.MoveToTarget.MoveToResult;
+import com.massisframework.massis.dasi.apps.robots.messages.IHaveNoEnergy;
 
 public class Perseguir implements AgentTask<Void, MoveToTarget.MoveToResult, RobotAgent>{
 
