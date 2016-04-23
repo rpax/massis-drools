@@ -1,5 +1,7 @@
 package com.massisframework.massis.dasi.agents.tasks;
 
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.function.Predicate;
 
 import com.massisframework.massis.dasi.RuleContext;
@@ -47,6 +49,13 @@ public class SimpleTasksFactory {
 				.map(ks -> ks.getEntryPoint(EntryPointNames.MESSAGING.name()))
 				.filter(ep -> ep != null)
 				.forEach(ep -> ep.insert(new MessageReceived<>(sender, data)));
+	}
+
+	public static <T> void sendMessageMultiples(RuleHighLevelController sender,
+			Collection<Object> receivers, T data)
+	{
+		receivers.forEach(r -> sendMessage(sender, r, data));
+
 	}
 
 	public static <T> void sendMessage(RuleHighLevelController sender,

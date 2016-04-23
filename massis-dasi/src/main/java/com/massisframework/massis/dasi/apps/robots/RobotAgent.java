@@ -32,15 +32,20 @@ public abstract class RobotAgent extends RuleHighLevelController {
 	private boolean idle;
 	private String teamName;
 	private Collection<RobotAgent> teamMembers;
+	private Collection<RobotAgent> teamLeaders;
+	
 
 	public RobotAgent(LowLevelAgent agent, Map<String, String> metadata,
 			String resourcesFolder)
 	{
 		super(agent, metadata, resourcesFolder);
+		teamName = metadata.get("TEAM");
 		this.logger = Logger.getLogger("RobotAgent_" + this.agent.getID());
 		this.energy = 1000;
 		agent.setMaxSpeed(agent.getMaxSpeed()+agent.getMaxSpeed()*Math.random());
 		this.teamMembers = new ArrayList<>();
+		this.teamLeaders = new ArrayList<>();
+		
 	}
 
 	public String getTeamName()
@@ -57,7 +62,13 @@ public abstract class RobotAgent extends RuleHighLevelController {
 	{
 		return teamMembers;
 	}
+	
+	public Collection<RobotAgent> getTeamLeaders()
+	{
+		return teamLeaders;
+	}
 
+	
 	public Location getLocation()
 	{
 		return this.agent.getLocation();
@@ -74,13 +85,25 @@ public abstract class RobotAgent extends RuleHighLevelController {
 	{
 		this.teamMembers = teamMembers;
 	}
+	
+	@Modifies("teamLeaders")
+	public void setTeamLeaders(Collection<RobotAgent> leaders)
+	{
+		teamLeaders = leaders;
+	}
 
 	@Modifies("teamMembers")
 	public void addTeamMember(RobotAgent teamMember)
 	{
 		this.teamMembers.add(teamMember);
 	}
-
+	
+	@Modifies("teamMembers")
+	public void addTeamLeader(RobotAgent leader)
+	{
+		this.teamLeaders.add(leader);
+	}
+	
 	public Logger getLogger()
 	{
 		return logger;
