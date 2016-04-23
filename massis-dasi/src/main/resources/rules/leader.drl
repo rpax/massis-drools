@@ -139,6 +139,14 @@ end
 //==================================================================================
 // Victim saving
 //----------------------------------------------------------------------------------
+rule "Create victims queue"
+	when
+		not(PendingVictims())
+	then
+		insert(new PendingVictims());
+end
+
+
 rule "Receive I have no energy message"
     when
        //soy un lider.
@@ -175,18 +183,14 @@ end
 rule "Pending victim queued"
 	when
        //soy un lider.
-       $me	: LeaderRobot( $pendingVs : pendingVictims,
-       						$vts : getFirstPendingVictim())
+       $me	: LeaderRobot( )
+       $pendingVs : PendingVictims( $vts : getFirstPendingVictim() )
        $gm  : GoalMemory( $goals : goals)
        $idle : IdleSubordinate()
        //hay una victima en la cola.
-       eval($me.isThereAPendingVictim()==true)
-       //por lo menos mi equipo tiene a algun robot ocioso
-       eval($me.isThereAnIdleAgent()==true)
+       eval($pendingVs.isThereAPendingVictim()==true)
     then
 	   $me.getLogger().info("Helping pending victim" + $vts.getVictim());
-	   //Quito la victima de la cola
-	   $me.consumePendingVictim();
 	   // Meto a la victima en la base de hechos.
 	   insert($vts);
 	   // Creo el objetivo de ayudar a la victima.
@@ -197,6 +201,9 @@ rule "Pending victim queued"
 	   $gm.addGoal(hv);
 	   // El subordinado no esta libre
 	   delete($idle);
+	    //Quito la victima de la cola
+	   $pendingVs.consumePendingVictim();
+	   System.out.println("QUITANDO VICTIMA DE LA COLA");
 end
 
 
@@ -227,14 +234,14 @@ rule "Only one team - Save victim"
 	   //Borro el hecho de que existe una victima con necesidad de rescate.
 	   delete($vR);
   	   modify($kmt){ setGoalState( GoalState.SOLVED ) }
-  	   
-  	   System.out.println($me.getBestIdleAgent($vR).isIdle());	  
+  	   	  
 end
 
 
 rule "Only one team - Save victim - No idle worker"
 	when
        $gm : GoalMemory( )
+       $pendingVs : PendingVictims( )
        //Soy un lider.
        $me	: LeaderRobot($teamLeaders: teamLeaders )
        //No hay mas lideres en el campo.
@@ -249,13 +256,13 @@ rule "Only one team - Save victim - No idle worker"
      then
        $me.getLogger().info("There are no agents to rescue "+$v+".");
   	   //Instertamos la victima pendiente en la cola
-  	   modify($me){ addPendingVictim($vR) }
+  	   modify($pendingVs){ addPendingVictim($vR) }
   	   //Borramos el hecho
   	   delete($vR);
   	   //Borramos la intencion de rescatarla, ya recuperaremos luego la intencion,
   	   // puede que la acabe rescatando otro equipo
   	   modify($kmt){ setGoalState( GoalState.SOLVED ) }
-  	   
+  	   System.out.println("SOLO UN EQUIPO - sin trabajadores ocupados");
 end
 
 
@@ -278,7 +285,6 @@ rule "Negotiation save victim not created"
      then
 		insert(new TeamNegotiationToSaveVictim($teamLeaders.size(),$vR,NegotiationStatus.NOT_STARTED));
 		delete($vR);
-		System.out.println("teamLiders size" + $teamLeaders.size());
 end
 
 
@@ -344,7 +350,7 @@ rule "No evaluation."
 	when
 		//Soy lider
        	$me	: LeaderRobot()
-       	
+       	$pendingVs : PendingVictims( )
        	$gm : GoalMemory( )
        	//Estoy pendiente de salvar a la victima
        	$kmt : HelpVictim ($v : goalData, goalState  == GoalState.PENDING ) from $gm.goals
@@ -359,13 +365,14 @@ rule "No evaluation."
 	then
 	   	$me.getLogger().info("All agents are busy. Restarting actions to obtain time based solution.");
 	   	//Elimino el objetivo.
-	   	//$gm.getGoals().remove($kmt);
+	   	 modify($kmt){ setGoalState( GoalState.SOLVED ) }
 		//Elimino el hecho.
 		//delete($kmt);
 		//Elimino la negociacion.
 		delete($tnl);
 		//Introduzco de nuevo que existe una victima que salvar.
-		insert(new VictimToSave( (RobotAgent)$v));
+		//insert(new VictimToSave( (RobotAgent)$v));
+		 modify($pendingVs){ addPendingVictim( new VictimToSave( (RobotAgent)$v ) ) }
 		
 		update($gm);		
 end
@@ -397,7 +404,7 @@ rule "I lose the match."
  				goalState  == GoalState.PENDING ) from $gm.goals
  							
 	then
-	   $me.getLogger().info("My team lose the options for rescue "+$victim.getVictim()+".");	
+	   $me.getLogger().info("My team loses the rescue contest "+$victim.getVictim()+".");	
 	   //Borro todo mi conocimiento respecto a este problema.
 	   delete($tnl);
 	   delete($mr);
@@ -405,7 +412,6 @@ rule "I lose the match."
 	   //delete($kmt);
 	   //update($gm);
 	   
-	   System.out.println($nresponse);
 end
 
 
@@ -422,7 +428,7 @@ rule "I win the match. - Order to Save Victim."
 	   	$kmt : HelpVictim ( goalState  == GoalState.PENDING ) from $gm.goals
 	   	not(eval($me.getFloatBestIdleAgent($victim)==-1))
 	then
-	   	$me.getLogger().info("My team are the better choice to rescue "+$victim+".");
+	   	$me.getLogger().info("My team is the better choice to rescue "+$victim+".");
 	   	$me.getLogger().info("Agent "+$me.getBestIdleAgent($victim)+" have been selected to the rescue.");
 	
 	   	String uuid=UUID.randomUUID().toString();	
@@ -438,6 +444,28 @@ end
 rule "Receive notification about victim saved"
     when
        $me	: LeaderRobot()
+       $pendingVs : PendingVictims( )
+       eval($pendingVs.isThereAPendingVictim()==false)
+       $mr	: MessageReceived(
+							data instanceof VictimSaved,
+							$sender : sender instanceof RobotAgent,
+							$victim : data.info
+     						) from entry-point MESSAGING
+     						
+     	$vas : VictimAssignedToSubordinate(victim == $victim)
+    then
+	   //Send task: Save victim
+	   $me.getLogger().info("Received notification about victim saved. Adding by "+$sender+".");
+	   delete($mr);
+	   delete($vas);
+end
+
+rule "Receive notification about victim saved - Consume queue"
+    when
+       $me	: LeaderRobot(  )
+       //hay una victima en la cola.
+       $pendingVs : PendingVictims( )
+       eval($pendingVs.isThereAPendingVictim()==true)
        $mr	: MessageReceived(
 							data instanceof VictimSaved,
 							$sender : sender instanceof RobotAgent,
@@ -452,8 +480,6 @@ rule "Receive notification about victim saved"
 	   delete($vas);
 	   insert(new IdleSubordinate());
 end
-
-
 
 
 

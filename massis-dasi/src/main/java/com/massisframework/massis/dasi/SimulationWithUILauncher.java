@@ -42,7 +42,7 @@ public class SimulationWithUILauncher {
 		try {
 			 DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 			System.out.println(factory);
-			buildingFilePath = "robots.sh3d";
+			buildingFilePath = "robots2.sh3d";
 		} catch (final Exception e) {
 			Logger.getLogger(SimulationWithUILauncher.class.getName())
 					.log(Level.SEVERE, "Error when loading home. Exiting", e);
