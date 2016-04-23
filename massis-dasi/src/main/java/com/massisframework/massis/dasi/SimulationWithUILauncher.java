@@ -29,6 +29,9 @@ import sim.display.GUIState;
 
 public class SimulationWithUILauncher {
 
+	static{
+		System.setProperty("com.eteks.sweethome3d.no3D", "true");
+	}
 	/**
 	 * @param args
 	 *            the building file path

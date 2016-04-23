@@ -1,71 +1,38 @@
 //created on: Apr 16, 2016
 package com.massisframework.massis.dasi.apps.robots.victim
 
-//
 import java.util.*;
 import java.util.concurrent.*;
 import com.massisframework.massis.dasi.lowlevel.LowLevelInfo;
+import com.massisframework.massis.dasi.agents.goals.*;
 import com.massisframework.massis.dasi.agents.tasks.AgentTask;
 import com.massisframework.massis.dasi.agents.tasks.SimpleTasksFactory;
 import com.massisframework.massis.dasi.events.messages.MessageReceived;
-import com.massisframework.massis.dasi.apps.robots.commontasks.*;
-import com.massisframework.massis.dasi.apps.robots.*;
-import com.massisframework.massis.dasi.apps.robots.messages.*;
-import com.massisframework.massis.dasi.apps.robots.victim.*;
-import com.massisframework.massis.dasi.apps.robots.victim.goals.*;
-import com.massisframework.massis.dasi.apps.robots.victim.tasks.*;
-import com.massisframework.massis.dasi.apps.robots.leader.*;
-import com.massisframework.massis.dasi.agents.goals.*;
-import com.massisframework.massis.dasi.agents.goals.AgentGoal.GoalState;
 import com.massisframework.massis.model.agents.LowLevelAgent;
 import com.massisframework.massis.model.building.SimRoom;
 import com.massisframework.massis.model.location.Location;
+
+//Robots
+import com.massisframework.massis.dasi.apps.robots.*;
+import com.massisframework.massis.dasi.apps.robots.messages.*;
+import com.massisframework.massis.dasi.apps.robots.messages.getHelp.*;
+import com.massisframework.massis.dasi.apps.robots.victim.info.*;
+import com.massisframework.massis.dasi.apps.robots.commontasks.*;
+
+
 
 //ruleflow-group([^"]*["][^"]+["])
 
 //declare any global variables here
 rule "Generate Goal Memory"
-	
 	when
 		not GoalMemory(  )
  	then
   		insert(new GoalMemory());
-  		System.out.println("HEY");
 end
 
-rule "Start working if doing nothing"
-	when
-    	$gm : GoalMemory( $goals : goals , containsGoalByClass(Trabajar.class)==false)
-    then
-    	Trabajar tbj = new Trabajar();
- 		insert(tbj);
-  	    $gm.addGoal(tbj);
-
-end
-
-rule "Start working if previous work is finished"
-	when
-    	$gm     : GoalMemory()
-		$tbj    : Trabajar ( goalState  == GoalState.SOLVED ) from $gm.goals 
-    then
-    	 modify($tbj){ setGoalState( GoalState.PENDING ) }
-
-end
-
-rule "Do work"
-	when
-    	$gm     : GoalMemory()
-		$tbj    : Trabajar ( goalState  == GoalState.PENDING ) from $gm.goals 
-    then
-    	 modify($tbj){ setGoalState( GoalState.SOLVING ) }
-
-end
-
-rule "Select target"
-	
+rule "Select target"	
     when
-    	$gm     : GoalMemory()
-		$tbj    : Trabajar( goalState == GoalState.SOLVING ) from $gm.goals
     	$me : VictimRobot()
     	LowLevelInfo($lla : lowLevelAgent)
         not CurrentTarget()
@@ -73,113 +40,61 @@ rule "Select target"
     	SimRoom rndRoom = $lla.getRandomRoom();
         Location rndLoc = rndRoom.getRandomLoc();
 		CurrentTarget currentTarget = new CurrentTarget(rndLoc);
-		$me.getLogger().info("SELECTING TARGET");
 		insert(currentTarget);
 end
 
 rule "Less than 1 meter of distance : remove current target"
 	
     when
-   		$gm     : GoalMemory()
-		$tbj    : Trabajar ( goalState == GoalState.SOLVING ) from $gm.goals
     	LowLevelInfo( $currentLoc : location  )
         $currentTarget : CurrentTarget(location.distance2D($currentLoc)<100)
     then
     	delete($currentTarget);
-    	modify($tbj){ setGoalState( GoalState.SOLVED ) }
 end
 
 
 rule "Move to the target (if has energy)"
 	
     when
-    	$gm     : GoalMemory()
-		$tbj    : Trabajar ( goalState == GoalState.SOLVING ) from $gm.goals
        $me : VictimRobot($energy : energy > 0)
        LowLevelInfo( $currentLoc : location )
        CurrentTarget(location.distance2D($currentLoc)>=100,$targetLoc : location)
     then
 	  AgentTask task = new MoveToTarget();
 	  task.execute($me,$targetLoc);
-	  //$me.getLogger().info("moving to "+$targetLoc);
-	  //$me.getLogger().info("Energy: "+$energy);
 end
-
-
-rule "Generate message goal if battery empty"
-	when
-    	$gm : GoalMemory( $goals : goals , containsGoalByClass(ConseguirContactoAyuda.class)==false)
-    then
-    	ConseguirContactoAyuda tbj = new ConseguirContactoAyuda();
- 		insert(tbj);
-  	    $gm.addGoal(tbj);
-
-end
-
-rule "Generate a new objective due to lack of energy again"
-	
-    when
-        $gm : GoalMemory()
-        $me	: VictimRobot( energy <= 0 )
-		$cca : ConseguirContactoAyuda ( goalState == GoalState.SOLVED ) from $gm.goals 
-    then
-       	modify($cca){ setGoalState( GoalState.PENDING ) }
-       	System.out.println("SIN ENERGIA 2");
-end
-
-
-rule "Start sending message due to lack of energy"
-	
-    when
-        $gm     : GoalMemory()
-        $me 	: VictimRobot( energy <= 0 )
-		$cca    : ConseguirContactoAyuda ( goalState == GoalState.PENDING ) from $gm.goals
-    then
-       	modify($cca){ setGoalState( GoalState.SOLVING ) }
-       	System.out.println("PONLO A SOLVING");
-       	System.out.println($gm);
-       	
-end
-
 
 rule "Send help me message due to lack of energy"
-	
     when
-    	$me 	: VictimRobot( energy <= 0 )
-        $gm     : GoalMemory()
-		$cca    : ConseguirContactoAyuda ( goalState == GoalState.SOLVING ) from $gm.goals
+       not(exists(RequestVerified()))
+       $me : VictimRobot(energy <= 0 )
     then
-       AgentTask task = new EnviarMensajeAyuda();
-	   task.execute($me, null);
-	   System.out.println("MANDA EL MENSAJE");
+    	$me.getLogger().info("Sending broadcast help me message");
+       	String uuid=UUID.randomUUID().toString();
+	   	SimpleTasksFactory.sendMessage($me,new IHaveNoEnergy($me.getLocation(), uuid));
 end
 
-rule "Stop sending messages"
-	
+
+rule "I have energy."
     when
-        $gm     : GoalMemory()
-		$cca    : ConseguirContactoAyuda ( goalState  == GoalState.SOLVING ) from $gm.goals
-		$mr		: MessageReceived(
-							data instanceof IAmGoingToHelpYou,
-							sender instanceof LeaderRobot,
-							$sender  : sender,
-							$info : data.info,
- 							$uuid : data.uuid
-     						) from entry-point MESSAGING
+       $re : RequestVerified()
+       $me : VictimRobot(energy > 0 )
     then
-       modify($cca){ setGoalState( GoalState.SOLVED ) }
-       delete($mr);
+   	  delete($re);
 end
 
-/*
-rule "Send help me message due to lack of energy"
-	
+rule "Received ACK message"
     when
-    	$me : VictimRobot()
-        $gm     : GoalMemory()
-		$cca    : ConseguirContactoAyuda ( goalState == GoalState.PENDING ) from $gm.goals
+        $me : VictimRobot(energy <= 0 )
+        $mr		: MessageReceived(
+						data instanceof IKnowYourState,
+						sender instanceof RobotAgent,
+						$sender  : sender,
+						$location : data.info,
+						$uuid : data.uuid
+ 					) from entry-point MESSAGING
     then
-       String uuid=UUID.randomUUID().toString();
-	   SimpleTasksFactory.sendMessage($me,new IHaveNoEnergy($me.getLocation(), uuid));
+	 $me.getLogger().info("Received ACK from "+$sender+". I'm hopeful.");
+ 	 insert(new RequestVerified());
+	 delete($mr);
 end
-*/

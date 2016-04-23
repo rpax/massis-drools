@@ -14,6 +14,9 @@ import com.massisframework.testdata.TestDataPlugin;
 
 public class EnvironmentEditor {
 
+	static{
+		System.setProperty("com.eteks.sweethome3d.no3D", "true");
+	}
 	public static void main(String[] args)
 	{
 		SampleHomesLoader.class.getName();
