@@ -8,7 +8,7 @@ import java.util.logging.Logger;
 import org.kie.api.definition.type.PropertyReactive;
 
 import com.massisframework.massis.dasi.apps.robots.RobotAgent;
-import com.massisframework.massis.dasi.apps.robots.leader.info.VictimToSave;
+import com.massisframework.massis.dasi.apps.robots.victim.VictimRobot;
 import com.massisframework.massis.model.agents.LowLevelAgent;
 
 @PropertyReactive
@@ -44,7 +44,7 @@ public class LeaderRobot extends RobotAgent {
 		return 0;
 	}
 	
-	public RobotAgent getBestIdleAgent(VictimToSave tv)
+	public RobotAgent getBestIdleAgent(VictimRobot tv)
 	{
 		RobotAgent res = null, aux = null;
 		Iterator<RobotAgent> itR = this.getTeamMembers().iterator();
@@ -65,15 +65,15 @@ public class LeaderRobot extends RobotAgent {
 	   	  	{
 	   	  		if(res==null) 	
 	   	  			res = aux;
-	   	  		else if(res.distanceTo(tv.getVictim().getLocation()) 
-		 			> aux.distanceTo(tv.getVictim().getLocation()))
+	   	  		else if(res.distanceTo(tv.getLocation()) 
+		 			> aux.distanceTo(tv.getLocation()))
 	   	  			res = aux;
 	   	  	}
 		}
 		return res;
 	}
 	
-	public double getFloatBestIdleAgent(VictimToSave tv)
+	public double getFloatBestIdleAgent(VictimRobot tv)
 	{
 		double res = -1, aux = 0;
 		RobotAgent auxR = null;
@@ -95,8 +95,8 @@ public class LeaderRobot extends RobotAgent {
 			if(auxR.isIdle())
 			{
 				if(res==-1)
-					res = auxR.distanceTo(tv.getVictim().getLocation());
-				else if(res > auxR.distanceTo(tv.getVictim().getLocation()))
+					res = auxR.distanceTo(tv.getLocation());
+				else if(res > auxR.distanceTo(tv.getLocation()))
 					res = aux;
 			}
 		}

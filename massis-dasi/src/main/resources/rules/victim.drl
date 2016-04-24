@@ -71,7 +71,7 @@ rule "Send help me message due to lack of energy"
     then
     	$me.getLogger().info("Sending broadcast help me message");
        	String uuid=UUID.randomUUID().toString();
-	   	SimpleTasksFactory.sendMessage($me,new IHaveNoEnergy($me.getLocation(), uuid));
+	   	SimpleTasksFactory.sendMessage($me,new NoEnergy($me.getLocation(), uuid));
 end
 
 
@@ -88,9 +88,8 @@ rule "Received ACK message"
         $me : VictimRobot(energy <= 0 )
         $mr		: MessageReceived(
 						data instanceof IKnowYourState,
-						sender instanceof RobotAgent,
+						sender instanceof BaseAgent,
 						$sender  : sender,
-						$location : data.info,
 						$uuid : data.uuid
  					) from entry-point MESSAGING
     then
