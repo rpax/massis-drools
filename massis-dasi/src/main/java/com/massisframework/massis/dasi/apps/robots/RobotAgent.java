@@ -98,7 +98,7 @@ public abstract class RobotAgent extends RuleHighLevelController {
 		this.teamMembers.add(teamMember);
 	}
 	
-	@Modifies("teamMembers")
+	@Modifies("teamLeaders")
 	public void addTeamLeader(RobotAgent leader)
 	{
 		this.teamLeaders.add(leader);
