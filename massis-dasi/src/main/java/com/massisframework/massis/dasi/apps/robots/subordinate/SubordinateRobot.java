@@ -31,6 +31,11 @@ public class SubordinateRobot extends RobotAgent {
 	{
 		return "SubordinateRobot ["+this.agent.getID()+"]";
 	}
+	
+	public void infoLogger(String mensaje){
+		logger.info(this.toString()+" : "+mensaje);
+	}
+	
 
 	@Override
 	public float getEnergyConsumption()

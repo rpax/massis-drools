@@ -53,6 +53,10 @@ public class BaseAgent extends RuleHighLevelController {
 	}
 	
 	
+	@Modifies("teamLeaders")
+	public void addTeamLeader(RobotAgent leaders){
+		teamLeaders.add(leaders);
+	}
 	
 	@Modifies("teamLeaders")
 	public void setTeamLeaders(Collection<RobotAgent> leaders){
@@ -66,5 +70,11 @@ public class BaseAgent extends RuleHighLevelController {
 	
 	public void infoLogger(String mensaje){
 		logger.info(this.toString()+" : "+mensaje);
+	}
+	
+	@Override
+	public String toString()
+	{
+		return "BaseAgent ["+this.agent.getID()+"]";
 	}
 }

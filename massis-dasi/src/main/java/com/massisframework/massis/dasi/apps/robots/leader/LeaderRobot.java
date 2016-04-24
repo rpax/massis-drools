@@ -32,10 +32,14 @@ public class LeaderRobot extends RobotAgent {
 		//
 		return new String[] { "rules/leader.drl" };
 	}
+	public void infoLogger(String mensaje){
+		logger.info(this.toString()+" : "+mensaje);
+	}
+	
 	@Override
 	public String toString()
 	{
-		return "LeaderRobot ["+this.agent.getID()+"]";
+		return "Leader ["+this.agent.getID()+"]";
 	}
 
 	@Override

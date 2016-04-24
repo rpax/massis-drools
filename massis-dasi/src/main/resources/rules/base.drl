@@ -42,22 +42,45 @@ end
 //--------- Tratamiento de mensajes de encuentro------------
 //----------------------------------------------------------
 
-rule "Recibido mensaje Hola."
+rule "Recibido mensaje Hola Victima."
 	when
    	   	$gm : GoalMemory( $goals : goals )
    	   	$me	:	BaseAgent()
        	$mr  : MessageReceived(
 							data instanceof Hi,
-							sender instanceof RobotAgent,
+							sender instanceof VictimRobot,
 							$sender  : sender,
 							$location : data.info,
 							$uuid : data.uuid
      						) from entry-point MESSAGING
  	then
+ 	    $me.infoLogger("Envio de saludo a una victima en respuesta a otro saludo.");
 		String uuid=UUID.randomUUID().toString();
 		SimpleTasksFactory.sendMessage($me,$sender,new Hi("",uuid));  	   
 		delete($mr);
 end
+
+
+rule "Recibido mensaje Hola Lider."
+	when
+   	   	$gm : GoalMemory( $goals : goals )
+   	   	$me	:	BaseAgent()
+       	$mr  : MessageReceived(
+							data instanceof Hi,
+							sender instanceof LeaderRobot,
+							$sender  : sender,
+							$location : data.info,
+							$uuid : data.uuid
+     						) from entry-point MESSAGING
+ 	then
+ 	    $me.infoLogger("Envio de saludo a un lider en respuesta a otro saludo.");
+ 	    modify($me){addTeamLeader((LeaderRobot)$sender)}
+		String uuid=UUID.randomUUID().toString();
+		SimpleTasksFactory.sendMessage($me,$sender,new Hi("",uuid));  	   
+		delete($mr);
+end
+
+
 
 
 
@@ -79,12 +102,13 @@ rule "Recibido mensaje de victima."
 							$location : data.info,
 							$uuid : data.uuid
      						) from entry-point MESSAGING
-     						
+     	not(exists(HelpVictim(goalData==$sender)))
 	then
+ 	    $me.infoLogger("Recibido mensaje de victima, envio de ACK.\n Numero de lideres: "+$me.getTeamLeaders().size());
 	  	SimpleTasksFactory.sendMessage($me,$sender,new IKnowYourState($uuid));  	     	   
   	   	HelpVictim hp = new HelpVictim((VictimRobot)$sender);
-  	   	modify(hp){setGoalState(GoalState.SOLVING)}
   	   	insert(hp);
+  	    modify(hp){setGoalState(GoalState.SOLVING)}
   	    $gm.addGoal(hp);
 	   	delete($mr);	
 end
@@ -104,15 +128,16 @@ rule "Pido Evaluacion a todos los lideres."
 						 goalState  == GoalState.SOLVING ) from $gm.goals
 		$me	: BaseAgent($tL	:	teamLeaders)
 		
-		not(exists(LeaderNegotiationToSaveVictim(victim==$gD)))
+		not(exists(LeaderNegotiationToSaveVictim(victim==(VictimRobot)$gD)))
 		
 		eval($tL.size()>0)
-	then		
+	then
+ 	    $me.infoLogger("Solicito evaluacion a los lideres.");	
 		LeaderNegotiationToSaveVictim ld = new LeaderNegotiationToSaveVictim($tL.size(),(VictimRobot)$gD);
 	   	insert(ld);
 	   	
    		String uuid=UUID.randomUUID().toString();
-	   	SimpleTasksFactory.sendMessage($me,$tL,new EvalVictim((VictimRobot)$gD,uuid));  	   
+	   	SimpleTasksFactory.sendMessageMultiples($me,$tL,new EvalVictim((VictimRobot)$gD,uuid));  	   
 end
 
 
@@ -171,6 +196,8 @@ rule "Recibo evaluacion nula o peor valoracion."
  
      	eval($evaluation.getValue()==-1 || ($bV!=-1 && $bV<=$evaluation.getValue()))
 	then
+	   	$me.infoLogger("Descarto valoracion recibida del lider : "+$sender);
+	
 		modify($ld){setNResponse(1)}		
 		delete($mr);
 end
@@ -188,6 +215,8 @@ rule "No espero mas respuestas. Agente==null"
 						bestAgent==null)
 		$me	: BaseAgent( )				
 	then
+	   	$me.infoLogger("Objetivo a pendiente, todos estan ocupados.");
+	
 	   	delete($LN);
    	   	modify($kmt){ setGoalState( GoalState.PENDING ) }	   
 end
@@ -203,6 +232,7 @@ rule "No espero mas respuestas. Agente!=null"
 						$bA	:	bestAgent!=null)
 		$me	: BaseAgent($tL	:	teamLeaders)				
 	then		
+	   	$me.infoLogger("Seleccionado agente para rescate.");
 		String uuid=UUID.randomUUID().toString();
 		SimpleTasksFactory.sendMessage($me,$bA,new SaveVictim((VictimRobot)$gD,uuid));
 		delete($LN);
@@ -226,6 +256,8 @@ rule "Objetivo resuelto. 1/2"
      						
      	eval($gD==$victim)
 	then
+	  	$me.infoLogger("Recibida notificacion de consecucion de objetivo.");
+		
   	   	modify($kmt){ setGoalState( GoalState.SOLVED ) }
 		delete($mr);
 end
@@ -237,6 +269,8 @@ rule "Objetivo resuelto."
 		$kmt : HelpVictim(goalState  == GoalState.PENDING ) from $gm.goals
 		$kmt2 : HelpVictim(goalState  == GoalState.SOLVED ) from $gm.goals
     then
+    	$me.infoLogger("Reevaluar situacion.");
+    
   	   	modify($kmt){ setGoalState( GoalState.SOLVING ) }
 		modify($gm){	delGoal($kmt2)	}
 end
@@ -250,6 +284,8 @@ rule "Objetivo resuelto 2."
 		not(eval($gm.containsGoalByState(GoalState.PENDING)))
 		$kmt2 : HelpVictim(goalState  == GoalState.SOLVED ) from $gm.goals
     then
+    	$me.infoLogger("No es necesario reevaluar la situacion.");
+    
 		modify($gm){	delGoal($kmt2)	}
 end
 

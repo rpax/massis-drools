@@ -46,6 +46,7 @@ rule "Si no conozco a la base"
 		$me : VictimRobot()
 		not(eval($me.isBaseKnow()))
 	then
+	    $me.infoLogger("Enviado mensaje en busca de la base.");
 		String uuid=UUID.randomUUID().toString();
 	   	SimpleTasksFactory.sendMessage($me,new Hi("",uuid));
 end
@@ -61,6 +62,7 @@ rule "Recibo mensaje de la base."
 						$uuid : data.uuid
  					) from entry-point MESSAGING
     then
+     $me.infoLogger("Recibido mensaje de la base.");
 	 modify($me){setBase((BaseAgent)$sender)}
 	 delete($mr);
 end
@@ -114,6 +116,8 @@ rule "Send help me message due to lack of energy"
        $me : VictimRobot(energy <= 0 )
        eval($me.isBaseKnow())
     then
+	     $me.infoLogger("Enviado mensaje de anunciando falta de energia.");
+    	
        	String uuid=UUID.randomUUID().toString();
 	   	SimpleTasksFactory.sendMessage($me,$me.getBase(),new NoEnergy($me.getLocation(), uuid));
 end
@@ -128,6 +132,7 @@ rule "Received ACK message"
 						$uuid : data.uuid
  					) from entry-point MESSAGING
     then
+     $me.infoLogger("Recibido ACK de la base.");
  	 insert(new RequestVerified());
 	 delete($mr);
 end

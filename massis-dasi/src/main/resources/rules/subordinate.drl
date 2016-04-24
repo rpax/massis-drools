@@ -56,6 +56,8 @@ rule "HiTeam message Received - It is my team."
  					$uuid    :  data.uuid
      			) from entry-point MESSAGING
  	then
+ 	      	   $me.infoLogger("Recibido saludo del lider.");
+ 	
     	SimpleTasksFactory.sendMessage($me,$sender,new Hi($team, $uuid));
 	  	delete($mr);
 end

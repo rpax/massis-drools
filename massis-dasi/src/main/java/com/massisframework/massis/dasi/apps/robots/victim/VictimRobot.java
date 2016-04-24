@@ -32,4 +32,13 @@ public class VictimRobot extends RobotAgent {
 		return this.energyConsumption;
 	}
 
+	public void infoLogger(String mensaje){
+		logger.info(this.toString()+" : "+mensaje);
+	}
+	
+	@Override
+	public String toString()
+	{
+		return "Victim ["+this.agent.getID()+"]";
+	}
 }

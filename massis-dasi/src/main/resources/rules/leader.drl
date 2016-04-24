@@ -61,6 +61,8 @@ rule "No conozco a nadie. Envio de mensajes."
 		$gm  : GoalMemory()
 		$kmt : KnowPool ( goalState  == GoalState.PENDING ) from $gm.goals
  	then
+ 	   $me.infoLogger("Envio saludo.");
+ 	
  	   String uuid=UUID.randomUUID().toString();
  	   SimpleTasksFactory.sendMessage($me,new Hi($team,uuid));
   	   modify($kmt){ setGoalState( GoalState.SOLVED ) }	   
@@ -77,6 +79,8 @@ rule "No conozco a nadie. Recibo mensaje de Base."
 							$uuid : data.uuid
      						) from entry-point MESSAGING
  	then
+ 	 	$me.infoLogger("Recibo mensaje de base.");
+ 	
 		modify($me){setBase((BaseAgent)$sender)}
 		delete($mr);
 end
@@ -91,6 +95,8 @@ rule "No conozco a nadie. Recibo mensaje de subordinado."
 							$uuid : data.uuid
      						) from entry-point MESSAGING
  	then
+  	   $me.infoLogger("Recibo mensaje de subordinado.");
+ 	
 		modify($me){addTeamMember((SubordinateRobot)$sender)}
 		delete($mr);
 end
@@ -112,6 +118,8 @@ rule "Recibida orden de evaluacion a victima de BaseAgent"
 							$uuid : data.uuid
      						) from entry-point MESSAGING
     then
+      	   $me.infoLogger("Recibida orden de evaluacion.");
+    
  	   	String uuid=UUID.randomUUID().toString();
     
 	   	EvalVictimResponse ev = new EvalVictimResponse(
