@@ -40,5 +40,9 @@ public abstract class AgentGoal<T> {
 	{
 		return goalState;
 	}
-
+	
+	public String toString()
+	{
+		return goalState.name();
+	}
 }

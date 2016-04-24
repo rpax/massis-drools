@@ -21,37 +21,31 @@ public class BaseAgent extends RuleHighLevelController {
 	protected Logger logger;
 	private static final long serialVersionUID = -3482235328135497066L;
 
-	private ArrayList<HelpVictim> pendingTasks;
 	private Collection<RobotAgent> teamLeaders;
 	
 
 	public BaseAgent(LowLevelAgent agent, Map<String, String> metadata,
 			String resourcesFolder){
 		super(agent, metadata, resourcesFolder);
-		this.logger = Logger.getLogger("RobotAgent_" + this.agent.getID());
+		this.logger = Logger.getLogger("BaseAgent_" + this.agent.getID());
 		agent.setMaxSpeed(agent.getMaxSpeed()+agent.getMaxSpeed()*Math.random());
 		this.teamLeaders = new ArrayList<>();	
 	}
 
 	protected String[] getRulePaths()
 	{
-		//
 		return new String[] { "rules/base.drl" };
 	}
 	
-	public Collection<RobotAgent> getTeamLeaders(){
-		return teamLeaders;
-	}
+
 	
 	public Location getLocation(){
 		return this.agent.getLocation();
 	}
 	
-	
-	public boolean anyPendingTask(){
-		return !pendingTasks.isEmpty();
+	public Collection<RobotAgent> getTeamLeaders(){
+		return teamLeaders;
 	}
-	
 	
 	@Modifies("teamLeaders")
 	public void addTeamLeader(RobotAgent leaders){

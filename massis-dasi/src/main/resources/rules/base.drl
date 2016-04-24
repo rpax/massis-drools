@@ -102,9 +102,9 @@ rule "Recibido mensaje de victima."
 							$location : data.info,
 							$uuid : data.uuid
      						) from entry-point MESSAGING
-     	not(exists(HelpVictim(goalData==$sender)))
+     	not(HelpVictim(goalData==$sender))
 	then
- 	    $me.infoLogger("Recibido mensaje de victima, envio de ACK.\n Numero de lideres: "+$me.getTeamLeaders().size());
+ 	    $me.infoLogger("Recibido mensaje de victima, envio de ACK. ");
 	  	SimpleTasksFactory.sendMessage($me,$sender,new IKnowYourState($uuid));  	     	   
   	   	HelpVictim hp = new HelpVictim((VictimRobot)$sender);
   	   	insert(hp);
@@ -123,12 +123,12 @@ end
 // comienza la negociacion para el rescate.
 rule "Pido Evaluacion a todos los lideres."
 	when
-   	   	$gm  : GoalMemory( $goals : goals )
+   	   	$gm  : GoalMemory(  )
 		$kmt : HelpVictim($gD	:	goalData,
 						 goalState  == GoalState.SOLVING ) from $gm.goals
 		$me	: BaseAgent($tL	:	teamLeaders)
 		
-		not(exists(LeaderNegotiationToSaveVictim(victim==(VictimRobot)$gD)))
+		not(LeaderNegotiationToSaveVictim(victim==(VictimRobot)$gD))
 		
 		eval($tL.size()>0)
 	then
