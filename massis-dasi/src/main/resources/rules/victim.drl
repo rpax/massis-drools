@@ -14,14 +14,21 @@ import com.massisframework.massis.model.location.Location;
 
 //Robots
 import com.massisframework.massis.dasi.apps.robots.*;
-import com.massisframework.massis.dasi.apps.robots.messages.*;
-import com.massisframework.massis.dasi.apps.robots.messages.getHelp.*;
-import com.massisframework.massis.dasi.apps.robots.victim.info.*;
 import com.massisframework.massis.dasi.apps.robots.commontasks.*;
 
+//Base
+import com.massisframework.massis.dasi.apps.robots.base.BaseAgent;
+//Victim
+import com.massisframework.massis.dasi.apps.robots.victim.*;
+import com.massisframework.massis.dasi.apps.robots.victim.info.*;
+
+//Messages
+import com.massisframework.massis.dasi.apps.robots.messages.*;
+import com.massisframework.massis.dasi.apps.robots.messages.meeting.*;
+import com.massisframework.massis.dasi.apps.robots.messages.getHelp.*;
 
 
-//ruleflow-group([^"]*["][^"]+["])
+
 
 //declare any global variables here
 rule "Generate Goal Memory"
@@ -30,6 +37,37 @@ rule "Generate Goal Memory"
  	then
   		insert(new GoalMemory());
 end
+
+//-------------------------------------------
+//---------- Encontrar a la base ------------
+//-------------------------------------------
+rule "Si no conozco a la base"
+	when
+		$me : VictimRobot()
+		not(eval($me.isBaseKnow()))
+	then
+		String uuid=UUID.randomUUID().toString();
+	   	SimpleTasksFactory.sendMessage($me,new Hi("",uuid));
+end
+
+
+rule "Recibo mensaje de la base."
+    when
+        $me 	: VictimRobot()
+        $mr		: MessageReceived(
+						data instanceof Hi,
+						sender instanceof BaseAgent,
+						$sender  : sender,
+						$uuid : data.uuid
+ 					) from entry-point MESSAGING
+    then
+	 modify($me){setBase((BaseAgent)$sender)}
+	 delete($mr);
+end
+
+//-------------------------------------------
+//------- Logica general de victima ---------
+//-------------------------------------------
 
 rule "Select target"	
     when
@@ -64,23 +102,20 @@ rule "Move to the target (if has energy)"
 	  task.execute($me,$targetLoc);
 end
 
+
+
+//-------------------------------------------
+//------- Conseguir ayuda de la base --------
+//-------------------------------------------
+
 rule "Send help me message due to lack of energy"
     when
        not(exists(RequestVerified()))
        $me : VictimRobot(energy <= 0 )
+       eval($me.isBaseKnow())
     then
-    	$me.getLogger().info("Sending broadcast help me message");
        	String uuid=UUID.randomUUID().toString();
-	   	SimpleTasksFactory.sendMessage($me,new NoEnergy($me.getLocation(), uuid));
-end
-
-
-rule "I have energy."
-    when
-       $re : RequestVerified()
-       $me : VictimRobot(energy > 0 )
-    then
-   	  delete($re);
+	   	SimpleTasksFactory.sendMessage($me,$me.getBase(),new NoEnergy($me.getLocation(), uuid));
 end
 
 rule "Received ACK message"
@@ -93,7 +128,14 @@ rule "Received ACK message"
 						$uuid : data.uuid
  					) from entry-point MESSAGING
     then
-	 $me.getLogger().info("Received ACK from "+$sender+". I'm hopeful.");
  	 insert(new RequestVerified());
 	 delete($mr);
+end
+
+rule "I have energy."
+    when
+       $re : RequestVerified()
+       $me : VictimRobot(energy > 0 )
+    then
+   	  delete($re);
 end

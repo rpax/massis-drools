@@ -1,0 +1,253 @@
+//created on: 24-abr-2016
+package com.massisframework.massis.dasi.apps.robots.base
+
+//list any import classes here.
+//std imports
+import java.util.*;
+import java.util.logging.Logger;
+import java.util.concurrent.*;
+import com.massisframework.massis.dasi.lowlevel.LowLevelInfo;
+import com.massisframework.massis.dasi.agents.tasks.AgentTask;
+import com.massisframework.massis.dasi.agents.tasks.SimpleTasksFactory;
+import com.massisframework.massis.dasi.events.messages.MessageReceived;
+import com.massisframework.massis.dasi.agents.goals.*;
+import com.massisframework.massis.dasi.agents.goals.AgentGoal.GoalState;
+
+import com.massisframework.massis.dasi.apps.robots.*;
+//Mensajes
+import com.massisframework.massis.dasi.apps.robots.messages.*;
+import com.massisframework.massis.dasi.apps.robots.messages.meeting.*;
+import com.massisframework.massis.dasi.apps.robots.messages.getHelp.*;
+import com.massisframework.massis.dasi.apps.robots.messages.getEvaluation.*;
+//Base
+import com.massisframework.massis.dasi.apps.robots.base.*;
+import com.massisframework.massis.dasi.apps.robots.base.goals.*;
+import com.massisframework.massis.dasi.apps.robots.base.info.*;
+//victim
+import com.massisframework.massis.dasi.apps.robots.victim.VictimRobot;
+//Leader
+import com.massisframework.massis.dasi.apps.robots.leader.LeaderRobot;
+
+rule "Generate Goal Memory"
+	when
+		not GoalMemory(  )
+ 	then
+  		insert(new GoalMemory());
+end
+
+
+//----------------------------------------------------------
+//--------- Tratamiento de mensajes de encuentro------------
+//----------------------------------------------------------
+
+rule "Recibido mensaje Hola."
+	when
+   	   	$gm : GoalMemory( $goals : goals )
+       	$mr  : MessageReceived(
+							data instanceof Hi,
+							sender instanceof RobotAgent,
+							$sender  : sender,
+							$location : data.info,
+							$uuid : data.uuid
+     						) from entry-point MESSAGING
+ 	then
+		String uuid=UUID.randomUUID().toString();
+		SimpleTasksFactory.sendMessage($me,$sender,new Hi("",uuid));  	   
+		delete($mr);
+end
+
+
+
+//----------------------------------------------------------
+//--------- Tratamiento de mensajes de ayuda ---------------
+//------------------Victima---------------------------------
+//----------------------------------------------------------
+
+
+//Recibo mensaje de una victima y lo registro como objetivo.
+rule "Recibido mensaje de victima."
+	when
+   	   $gm : GoalMemory( $goals : goals )
+
+       $mr  : MessageReceived(
+							data instanceof NoEnergy,
+							sender instanceof VictimRobot,
+							$sender  : sender,
+							$location : data.info,
+							$uuid : data.uuid
+     						) from entry-point MESSAGING
+     						
+	then
+	  	SimpleTasksFactory.sendMessage($me,$sender,new IKnowYourState($uuid));  	     	   
+  	   	HelpVictim hp = new HelpVictim((VictimRobot)$sender));
+  	   	modify(hp){setGoalState(GoalState.SOLVING)}
+  	   	insert(kmt);
+  	    $gm.addGoal(kmt);
+	   	delete($mr);	
+	then
+end
+
+//----------------------------------------------------------
+//--------- Tratamiento de mensajes de ayuda ---------------
+//------------------Robots.---------------------------------
+//----------------------------------------------------------
+
+// Si tengo registrados a los lideres o al menos a uno
+// Si existe una victima que rescatar
+// comienza la negociacion para el rescate.
+rule "Pido Evaluacion a todos los lideres."
+	when
+   	   	$gm  : GoalMemory( $goals : goals )
+		$kmt : HelpVictim($gD	:	goalData,
+						 goalState  == GoalState.SOLVING ) from $gm.goals
+		$me	: BaseAgent($tL	:	teamLeaders)
+		
+		not(exists(LeaderNegotiationToSaveVictim(victim==$gD)))
+		
+		eval($tL.size()>0)
+	then		
+		LeaderNegotiationToSaveVictim ld = new LeaderNegotiationToSaveVictim($tL.size(),$gD);
+	   	insert(ld);
+	   	
+   		String uuid=UUID.randomUUID().toString();
+	   	SimpleTasksFactory.sendMessage($me,$tL,new EvalVictim($gD,uuid));  	   
+end
+
+
+// Tipos de evaluaciones : Evaluacion positiva.
+
+rule "Recibo evaluacion positiva de uno de los lideres."
+	when
+   	   	$gm  : GoalMemory( $goals : goals )
+		$kmt : HelpVictim($gD	:	goalData,
+						 goalState  == GoalState.SOLVING ) from $gm.goals
+		$me	: BaseAgent($tL	:	teamLeaders)
+		
+		LeaderNegotiationToSaveVictim(victim==$gD,
+									$nR	:	nResponse>0,
+									$bV	:	bestValueAgent,
+									$bA	:	bestAgent)
+		$mr  : MessageReceived(
+							data instanceof EvalVictimResponse,
+							sender instanceof VictimRobot,
+							$sender  : sender,
+							$evaluation : data.info,
+							$uuid : data.uuid
+     						) from entry-point MESSAGING
+    
+     	eval($evaluation.getValue()!=-1)
+     	eval($bV>$evaluation.getValue())
+	then
+	   	$me.infoLogger("Recibida mejor valoracion del lider : "+$sender);
+		
+		modify($bA){setBestAgent($evaluation.agent)}
+		modify($bV){setBestValueAgent($evaluation.value)}
+		modify($nR){setNResponse(1)}
+		
+		delete($mr);
+end
+
+// Tipos de evaluaciones : Evaluacion negativa.
+
+rule "Recibo evaluacion nula o peor valoracion."
+	when
+   	   	$gm  : GoalMemory( $goals : goals )
+		$kmt : HelpVictim($gD	:	goalData,
+						 goalState  == GoalState.SOLVING ) from $gm.goals
+		$me	: BaseAgent($tL	:	teamLeaders)
+		LeaderNegotiationToSaveVictim(victim==$gD,
+									$nR	:	nResponse>0,
+									$bV	:	bestValueAgent,
+									$bA	:	bestAgent)
+		$mr  : MessageReceived(
+							data instanceof EvalVictimResponse,
+							sender instanceof VictimRobot,
+							$sender  : sender,
+							$evaluation : data.info,
+							$uuid : data.uuid
+     						) from entry-point MESSAGING
+ 
+     	eval($evaluation.getValue()==-1 || ($bV!=-1 && $bV<=$evaluation.getValue()))
+	then
+		modify($nR){setNResponse(1)}		
+		delete($mr);
+end
+
+
+
+rule "No espero mas respuestas. Agente==null"
+	when
+   	   	$gm  : GoalMemory( $goals : goals )
+		$kmt : HelpVictim($gD	:	goalData,
+						 goalState  == GoalState.SOLVING ) from $gm.goals
+		
+		$LN	:	LeaderNegotiationToSaveVictim(nResponse==0,
+						victim==$gD,
+						bestAgent==null)
+		$me	: BaseAgent( )				
+	then
+	   	delete($LN);
+   	   	modify($kmt){ setGoalState( GoalState.PENDING ) }	   
+end
+
+
+rule "No espero mas respuestas. Agente!=null"
+	when
+   	   	$gm  : GoalMemory( $goals : goals )
+		$kmt : HelpVictim($gD	:	goalData,
+						 goalState  == GoalState.SOLVING ) from $gm.goals
+		$LN	:	LeaderNegotiationToSaveVictim(nResponse==0,
+						victim==$gD,
+						$bA	:	bestAgent!=null)
+		$me	: BaseAgent($tL	:	teamLeaders)				
+	then		
+		String uuid=UUID.randomUUID().toString();
+		SimpleTasksFactory.sendMessage($me,$bA,new SaveVictim($gD,uuid));
+		delete($LN);
+  	   	modify($kmt){ setGoalState( GoalState.REFINED ) }
+end
+
+
+rule "Objetivo resuelto."
+	when
+   	   	$gm  : GoalMemory( $goals : goals )
+		$kmt : HelpVictim($gD	:	goalData,
+						 goalState  == GoalState.REFINED ) from $gm.goals
+		$me	: BaseAgent()
+      	$mr  : MessageReceived(
+							data instanceof VictimSaved,
+							sender instanceof RobotAgent,
+							$sender  : sender,
+							$location : data.info,
+							$uuid : data.uuid
+     						) from entry-point MESSAGING	
+     						
+     	eval(data.info==$kmt)
+	then
+  	   	modify($kmt){ setGoalState( GoalState.SOLVED ) }
+		delete($mr);
+end
+
+rule "Objetivo resuelto."
+	when
+		$me	: BaseAgent()
+   	   	$gm  : GoalMemory( $goals : goals )
+		$kmt : HelpVictim(goalState  == GoalState.PENDING ) from $gm.goals
+		$kmt2 : HelpVictim(goalState  == GoalState.SOLVED ) from $gm.goals
+    then
+  	   	modify($kmt){ setGoalState( GoalState.SOLVING ) }
+		modify($goals){	delGoal($kmt2)	}
+end
+
+
+
+rule "Objetivo resuelto 2."
+	when
+		$me	: BaseAgent()
+   	   	$gm  : GoalMemory( $goals : goals )
+		eval(not($gm.containsGoalByState(GoalState.PENDING)))
+		$kmt2 : HelpVictim(goalState  == GoalState.SOLVED ) from $gm.goals
+    then
+		modify($goals){	delGoal($kmt2)	}
+end
+

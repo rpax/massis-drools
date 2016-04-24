@@ -11,6 +11,7 @@ import org.kie.api.definition.type.Modifies;
 import org.kie.api.definition.type.PropertyReactive;
 
 import com.massisframework.massis.dasi.RuleHighLevelController;
+import com.massisframework.massis.dasi.apps.robots.base.BaseAgent;
 import com.massisframework.massis.model.agents.LowLevelAgent;
 import com.massisframework.massis.model.building.WayPoint;
 import com.massisframework.massis.model.location.Location;
@@ -32,8 +33,7 @@ public abstract class RobotAgent extends RuleHighLevelController {
 	private boolean idle;
 	private String teamName;
 	private Collection<RobotAgent> teamMembers;
-	private Collection<RobotAgent> teamLeaders;
-	
+	private BaseAgent base;
 
 	public RobotAgent(LowLevelAgent agent, Map<String, String> metadata,
 			String resourcesFolder)
@@ -44,8 +44,8 @@ public abstract class RobotAgent extends RuleHighLevelController {
 		this.energy = 1000;
 		agent.setMaxSpeed(agent.getMaxSpeed()+agent.getMaxSpeed()*Math.random());
 		this.teamMembers = new ArrayList<>();
-		this.teamLeaders = new ArrayList<>();
-		
+		this.teamMembers.add(this);
+		base = null;
 	}
 
 	public String getTeamName()
@@ -63,10 +63,6 @@ public abstract class RobotAgent extends RuleHighLevelController {
 		return teamMembers;
 	}
 	
-	public Collection<RobotAgent> getTeamLeaders()
-	{
-		return teamLeaders;
-	}
 
 	
 	public Location getLocation()
@@ -86,11 +82,6 @@ public abstract class RobotAgent extends RuleHighLevelController {
 		this.teamMembers = teamMembers;
 	}
 	
-	@Modifies("teamLeaders")
-	public void setTeamLeaders(Collection<RobotAgent> leaders)
-	{
-		teamLeaders = leaders;
-	}
 
 	@Modifies("teamMembers")
 	public void addTeamMember(RobotAgent teamMember)
@@ -98,11 +89,7 @@ public abstract class RobotAgent extends RuleHighLevelController {
 		this.teamMembers.add(teamMember);
 	}
 	
-	@Modifies("teamMembers")
-	public void addTeamLeader(RobotAgent leader)
-	{
-		this.teamLeaders.add(leader);
-	}
+	
 	
 	public Logger getLogger()
 	{
@@ -120,6 +107,22 @@ public abstract class RobotAgent extends RuleHighLevelController {
 		this.energy = energy;
 	}
 
+	@Modifies("base")
+	public void setBase(BaseAgent b)
+	{
+		this.base = b;
+	}
+	
+	public BaseAgent getBase()
+	{
+		return base;
+	}
+	
+	public boolean isBaseKnow()
+	{
+		return base!=null;
+	}
+	
 	@Modifies("energy")
 	public void increaseEnergy(float quantity)
 	{

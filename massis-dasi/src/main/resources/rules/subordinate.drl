@@ -11,21 +11,25 @@ import com.massisframework.massis.dasi.events.messages.MessageReceived;
 import com.massisframework.massis.model.agents.LowLevelAgent;
 import com.massisframework.massis.dasi.agents.goals.*;
 import com.massisframework.massis.dasi.agents.goals.AgentGoal.GoalState;
+import com.massisframework.massis.dasi.apps.robots.commontasks.*;
+
 //robots
 import com.massisframework.massis.dasi.apps.robots.*;
-import com.massisframework.massis.dasi.apps.robots.messages.*;
-import com.massisframework.massis.dasi.apps.robots.messages.orders.*;
-import com.massisframework.massis.dasi.apps.robots.messages.knowTeam.*;
-import com.massisframework.massis.dasi.apps.robots.messages.getHelp.*;
 
+//Messages
+import com.massisframework.massis.dasi.apps.robots.messages.*;
+import com.massisframework.massis.dasi.apps.robots.messages.SavingVictim.*;
+import com.massisframework.massis.dasi.apps.robots.messages.meeting.*;
+
+
+//Subordinate
 import com.massisframework.massis.dasi.apps.robots.subordinate.*;
 import com.massisframework.massis.dasi.apps.robots.subordinate.info.*;
 import com.massisframework.massis.dasi.apps.robots.subordinate.goals.*;
 
-import com.massisframework.massis.dasi.apps.robots.victim.*;
 
-import com.massisframework.massis.dasi.apps.robots.leader.info.VictimToSave;
-import com.massisframework.massis.dasi.apps.robots.commontasks.*;
+//Vicim
+import com.massisframework.massis.dasi.apps.robots.victim.*;
 
 //=============================================================================
 // Goal selection
@@ -46,48 +50,16 @@ rule "HiTeam message Received - It is my team."
 	when
 		$me   : SubordinateRobot($team: teamName)
 		$mr : MessageReceived(
-					data instanceof HiTeam,
+					data instanceof Hi,
 					$sender  : sender,
 					$team == data.info,
  					$uuid    :  data.uuid
      			) from entry-point MESSAGING
  	then
-    	$me.getLogger().info("I have a message from my leader.");
- 	 	$me.getLogger().info("Sending message from Me :"+$me+" -> Leader:"+$sender+".");  
- 	  	SimpleTasksFactory.sendMessage($me,$sender,new HiTeamResponseMember($team, $uuid));
+    	SimpleTasksFactory.sendMessage($me,$sender,new Hi($team, $uuid));
 	  	delete($mr);
 end
 
-
-rule "HiTeam message Received - It isn't my team."
-	when
-		$me : SubordinateRobot($team: teamName)
-		$mr : MessageReceived(
-				data instanceof HiTeam,
-				$sender  : sender,
-				$info : data.info,
- 				$uuid    :  data.uuid
-     		) from entry-point MESSAGING
-     	not(eval($team==$info))
- 	then
- 	  delete($mr);
-end
-
-
-
-rule "You are part of my team message Received."
-	when
-		$me : SubordinateRobot($team : teamName)
-		$mr : MessageReceived(
-				data instanceof YouArePartOfMyTeam,
-				$sender  : sender,
-				$team == data.info,
- 				$uuid    :  data.uuid
-     		) from entry-point MESSAGING
- 	then
- 	  $me.getLogger().info("My team leader knows that i'm a member of the team.");
- 	  delete($mr);
-end
 
 
 
@@ -117,10 +89,10 @@ rule "Save victim - approach"
 		$kmt : HelpVictim ( $gD :	goalData,
 							goalState  == GoalState.PENDING ) from $gm.goals
        	$me	:   SubordinateRobot()
-       	LowLevelInfo( location.distance2D($victim.getLocation())>1000)
+       	LowLevelInfo( location.distance2D(((VictimRobot)$gD).getLocation())>1000)
     then
 	  	AgentTask task = new MoveToTarget();
-	  	task.execute($me,$gD.getLocation());
+	  	task.execute($me,((VictimRobot)$gD).getLocation());
 end
 
 
@@ -131,11 +103,11 @@ rule "Save victim - recharge"
 	   	$kmt : HelpVictim ( $gD	:	goalData,
 	   					goalState  == GoalState.SOLVING ) from $gm.goals
        	$me	:   SubordinateRobot()
-       	LowLevelInfo( location.distance2D($victim.getLocation())<=1000)
+       	LowLevelInfo( location.distance2D(((VictimRobot)$gD).getLocation())<=1000)
     then
-	  	$gD.setEnergy(1000);
+	  	((VictimRobot)$gD).setEnergy(1000);
 	  	modify($me){setIdle(true)}
 	  	String uuid=UUID.randomUUID().toString();
-	  	SimpleTasksFactory.sendMessage($me,new VictimSaved($gD, uuid));
+	  	SimpleTasksFactory.sendMessage($me,new VictimSaved((VictimRobot)$gD, uuid));
   	  	modify($kmt){ setGoalState( GoalState.SOLVED ) }	   
 end

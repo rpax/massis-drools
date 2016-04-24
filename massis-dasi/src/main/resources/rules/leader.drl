@@ -14,19 +14,19 @@ import com.massisframework.massis.dasi.agents.goals.AgentGoal.GoalState;
 //robots
 import com.massisframework.massis.dasi.apps.robots.*;
 import com.massisframework.massis.dasi.apps.robots.messages.*;
-import com.massisframework.massis.dasi.apps.robots.messages.getHelp.*;
-import com.massisframework.massis.dasi.apps.robots.messages.knowTeam.*;
-import com.massisframework.massis.dasi.apps.robots.messages.orders.*;
-import com.massisframework.massis.dasi.apps.robots.messages.saveVictimNegotiation.*;
+import com.massisframework.massis.dasi.apps.robots.messages.meeting.*;
+import com.massisframework.massis.dasi.apps.robots.messages.SavingVictim.*;
+import com.massisframework.massis.dasi.apps.robots.messages.getEvaluation.*;
 //leader
-import com.massisframework.massis.dasi.apps.robots.leader.info.TermNegotiation.NegotiationStatus;
 import com.massisframework.massis.dasi.apps.robots.leader.*;
-import com.massisframework.massis.dasi.apps.robots.leader.info.*;
 import com.massisframework.massis.dasi.apps.robots.leader.goals.*;
 //subordinate
 import com.massisframework.massis.dasi.apps.robots.subordinate.SubordinateRobot;
 //victim
 import com.massisframework.massis.dasi.apps.robots.victim.VictimRobot;
+//base
+import com.massisframework.massis.dasi.apps.robots.base.BaseAgent;
+
 //declare any global variables here
 
 //=============================================================================
@@ -39,72 +39,65 @@ rule "Generate Goal Memory"
   		insert(new GoalMemory());
 end
 
-rule "Add know my team goal if not present"	
+
+//=============================================================================
+// Conocer a todo el pool --- Equipo y Base
+//-----------------------------------------------------------------------------
+rule "No conozco a nadie"	
 	when
-		$gm : GoalMemory( $goals : goals , containsGoalByClass(KnowMyTeam.class)==false)
+		$gm : GoalMemory( $goals : goals , containsGoalByClass(KnowPool.class)==false)
  	then
- 		KnowMyTeam kmt = new KnowMyTeam();
+ 		KnowPool kmt = new KnowPool();
  		insert(kmt);
   	    $gm.addGoal(kmt);
 end
 
 
-//=============================================================================
-// Team negotiation rules
-//-----------------------------------------------------------------------------
-// Goal Trigger
-rule "If I dont know my team : The current goal changes."
+rule "No conozco a nadie. Envio de mensajes."
 	when
 		$me  : LeaderRobot($team : teamName)
 		$gm  : GoalMemory()
-		$kmt : KnowMyTeam ( goalState  == GoalState.PENDING ) from $gm.goals
+		$kmt : KnowPool ( goalState  == GoalState.PENDING ) from $gm.goals
  	then
  	   String uuid=UUID.randomUUID().toString();
- 	   SimpleTasksFactory.sendMessage($me,new HiTeam($team,uuid));
+ 	   SimpleTasksFactory.sendMessage($me,new Hi($team,uuid));
   	   modify($kmt){ setGoalState( GoalState.SOLVED ) }	   
 end
 
 
-rule "Received HiTeamResponseMember"
+rule "No conozco a nadie. Recibo mensaje de Base."
 	when
-		$me		: LeaderRobot()
+		$me		: LeaderRobot($bA	:	base)
 		$mr		: MessageReceived(
-							data instanceof HiTeamResponseMember,
-							sender instanceof RobotAgent,
+							data instanceof Hi,
+							sender instanceof BaseAgent,
 							$sender  : sender,
-							$info : data.info,
- 							$uuid : data.uuid
+							$uuid : data.uuid
      						) from entry-point MESSAGING
  	then
- 	  $me.getLogger().info("Adding "+$sender+" to my pool TeamMembers.");
- 	  SimpleTasksFactory.sendMessage($me,$sender,new YouArePartOfMyTeam("1",$uuid));
- 	  modify($me){ addTeamMember((RobotAgent)$sender)}
- 	  delete($mr);
+		modify($bA){setBase($sender)}
+		delete($mr);
 end
 
-
-rule "AddedToPoolLeader"
+rule "No conozco a nadie. Recibo mensaje de subordinado."
 	when
-		$me		: LeaderRobot($team : teamName)
+		$me		: LeaderRobot($tM	:	teamMembers)
 		$mr		: MessageReceived(
-							data instanceof AddedToMyPoolLeader,
-							sender instanceof RobotAgent,
+							data instanceof Hi,
+							sender instanceof SubordinateRobot,
 							$sender  : sender,
-							$info : data.info,
- 							$uuid : data.uuid
+							$uuid : data.uuid
      						) from entry-point MESSAGING
  	then
-    $me.getLogger().info("I have added to the pool leader of "+$sender+".");
- 	delete($mr);
+		modify($bA){addTeamMember($sender)}
+		delete($mr);
 end
-
-
 
 
 //==================================================================================
 // Victim saving order
 //----------------------------------------------------------------------------------
-rule "Receive I have no energy message from BaseAgent"
+rule "Recibida orden de evaluacion a victima de BaseAgent"
     when
        //soy un lider.
        $me	: LeaderRobot()
@@ -125,3 +118,53 @@ rule "Receive I have no energy message from BaseAgent"
 end
 
 
+
+
+//=============================================================================
+// Operational order negotiation rules
+//-----------------------------------------------------------------------------
+
+rule "Received save victim order"
+    when
+	  	$gm : GoalMemory( $goals : goals , containsGoalByClass(HelpVictim.class)==false)
+	   	$me	: SubordinateRobot(idle == true)
+       	$mr	:	MessageReceived(
+				data instanceof SaveVictim,
+				$victim : data.info
+			) from entry-point MESSAGING
+    then
+	  	modify($me){setIdle(false)}
+  		HelpVictim kmt = new HelpVictim((VictimRobot)$victim);
+ 		insert(kmt);
+  	    $gm.addGoal(kmt);
+	  	delete($mr);
+end
+
+rule "Save victim - approach"
+    when	
+		$gm  : GoalMemory()
+		$kmt : HelpVictim ( $gD :	goalData,
+							goalState  == GoalState.PENDING ) from $gm.goals
+       	$me	:   SubordinateRobot()
+       	LowLevelInfo( location.distance2D(((VictimRobot)$gD).getLocation())>1000)
+    then
+	  	AgentTask task = new MoveToTarget();
+	  	task.execute($me,$gD.getLocation());
+end
+
+
+
+rule "Save victim - recharge"
+    when
+    	$gm  : GoalMemory()
+	   	$kmt : HelpVictim ( $gD	:	goalData,
+	   					goalState  == GoalState.SOLVING ) from $gm.goals
+       	$me	:   SubordinateRobot()
+       	LowLevelInfo( location.distance2D($victim.getLocation())<=1000)
+    then
+	  	$gD.setEnergy(1000);
+	  	modify($me){setIdle(true)}
+	  	String uuid=UUID.randomUUID().toString();
+	  	SimpleTasksFactory.sendMessage($me,new VictimSaved($gD, uuid));
+  	  	modify($kmt){ setGoalState( GoalState.SOLVED ) }	   
+end
