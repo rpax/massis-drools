@@ -15,7 +15,7 @@ import com.massisframework.massis.model.agents.LowLevelAgent;
 import com.massisframework.massis.model.location.Location;
 
 @PropertyReactive
-public abstract class BaseAgent extends RuleHighLevelController {
+public class BaseAgent extends RuleHighLevelController {
 
 	
 	protected Logger logger;

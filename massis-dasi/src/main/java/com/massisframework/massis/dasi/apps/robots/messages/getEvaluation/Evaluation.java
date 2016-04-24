@@ -9,7 +9,7 @@ public class Evaluation {
 	private RobotAgent agent;
 	private Double value;
 	
-	Evaluation(RobotAgent a, Double v)
+	public Evaluation(RobotAgent a, Double v)
 	{
 		super();
 		agent=a;

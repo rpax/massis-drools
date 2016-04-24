@@ -19,6 +19,8 @@ import com.massisframework.massis.dasi.apps.robots.messages.*;
 import com.massisframework.massis.dasi.apps.robots.messages.meeting.*;
 import com.massisframework.massis.dasi.apps.robots.messages.getHelp.*;
 import com.massisframework.massis.dasi.apps.robots.messages.getEvaluation.*;
+import com.massisframework.massis.dasi.apps.robots.messages.SavingVictim.*;
+
 //Base
 import com.massisframework.massis.dasi.apps.robots.base.*;
 import com.massisframework.massis.dasi.apps.robots.base.goals.*;
@@ -43,6 +45,7 @@ end
 rule "Recibido mensaje Hola."
 	when
    	   	$gm : GoalMemory( $goals : goals )
+   	   	$me	:	BaseAgent()
        	$mr  : MessageReceived(
 							data instanceof Hi,
 							sender instanceof RobotAgent,
@@ -67,9 +70,9 @@ end
 //Recibo mensaje de una victima y lo registro como objetivo.
 rule "Recibido mensaje de victima."
 	when
-   	   $gm : GoalMemory( $goals : goals )
-
-       $mr  : MessageReceived(
+   	   	$gm : GoalMemory( $goals : goals )
+		$me	:	BaseAgent()
+     	$mr  : MessageReceived(
 							data instanceof NoEnergy,
 							sender instanceof VictimRobot,
 							$sender  : sender,
@@ -79,12 +82,11 @@ rule "Recibido mensaje de victima."
      						
 	then
 	  	SimpleTasksFactory.sendMessage($me,$sender,new IKnowYourState($uuid));  	     	   
-  	   	HelpVictim hp = new HelpVictim((VictimRobot)$sender));
+  	   	HelpVictim hp = new HelpVictim((VictimRobot)$sender);
   	   	modify(hp){setGoalState(GoalState.SOLVING)}
-  	   	insert(kmt);
-  	    $gm.addGoal(kmt);
+  	   	insert(hp);
+  	    $gm.addGoal(hp);
 	   	delete($mr);	
-	then
 end
 
 //----------------------------------------------------------
@@ -106,11 +108,11 @@ rule "Pido Evaluacion a todos los lideres."
 		
 		eval($tL.size()>0)
 	then		
-		LeaderNegotiationToSaveVictim ld = new LeaderNegotiationToSaveVictim($tL.size(),$gD);
+		LeaderNegotiationToSaveVictim ld = new LeaderNegotiationToSaveVictim($tL.size(),(VictimRobot)$gD);
 	   	insert(ld);
 	   	
    		String uuid=UUID.randomUUID().toString();
-	   	SimpleTasksFactory.sendMessage($me,$tL,new EvalVictim($gD,uuid));  	   
+	   	SimpleTasksFactory.sendMessage($me,$tL,new EvalVictim((VictimRobot)$gD,uuid));  	   
 end
 
 
@@ -123,7 +125,7 @@ rule "Recibo evaluacion positiva de uno de los lideres."
 						 goalState  == GoalState.SOLVING ) from $gm.goals
 		$me	: BaseAgent($tL	:	teamLeaders)
 		
-		LeaderNegotiationToSaveVictim(victim==$gD,
+		$ld	:	LeaderNegotiationToSaveVictim(victim==$gD,
 									$nR	:	nResponse>0,
 									$bV	:	bestValueAgent,
 									$bA	:	bestAgent)
@@ -140,9 +142,9 @@ rule "Recibo evaluacion positiva de uno de los lideres."
 	then
 	   	$me.infoLogger("Recibida mejor valoracion del lider : "+$sender);
 		
-		modify($bA){setBestAgent($evaluation.agent)}
-		modify($bV){setBestValueAgent($evaluation.value)}
-		modify($nR){setNResponse(1)}
+		modify($ld){setBestAgent($evaluation.getAgent())}
+		modify($ld){setBestValueAgent($evaluation.getValue())}
+		modify($ld){setNResponse(1)}
 		
 		delete($mr);
 end
@@ -155,7 +157,7 @@ rule "Recibo evaluacion nula o peor valoracion."
 		$kmt : HelpVictim($gD	:	goalData,
 						 goalState  == GoalState.SOLVING ) from $gm.goals
 		$me	: BaseAgent($tL	:	teamLeaders)
-		LeaderNegotiationToSaveVictim(victim==$gD,
+		$ld	:	LeaderNegotiationToSaveVictim(victim==$gD,
 									$nR	:	nResponse>0,
 									$bV	:	bestValueAgent,
 									$bA	:	bestAgent)
@@ -169,7 +171,7 @@ rule "Recibo evaluacion nula o peor valoracion."
  
      	eval($evaluation.getValue()==-1 || ($bV!=-1 && $bV<=$evaluation.getValue()))
 	then
-		modify($nR){setNResponse(1)}		
+		modify($ld){setNResponse(1)}		
 		delete($mr);
 end
 
@@ -202,13 +204,13 @@ rule "No espero mas respuestas. Agente!=null"
 		$me	: BaseAgent($tL	:	teamLeaders)				
 	then		
 		String uuid=UUID.randomUUID().toString();
-		SimpleTasksFactory.sendMessage($me,$bA,new SaveVictim($gD,uuid));
+		SimpleTasksFactory.sendMessage($me,$bA,new SaveVictim((VictimRobot)$gD,uuid));
 		delete($LN);
   	   	modify($kmt){ setGoalState( GoalState.REFINED ) }
 end
 
 
-rule "Objetivo resuelto."
+rule "Objetivo resuelto. 1/2"
 	when
    	   	$gm  : GoalMemory( $goals : goals )
 		$kmt : HelpVictim($gD	:	goalData,
@@ -218,11 +220,11 @@ rule "Objetivo resuelto."
 							data instanceof VictimSaved,
 							sender instanceof RobotAgent,
 							$sender  : sender,
-							$location : data.info,
+							$victim : data.info,
 							$uuid : data.uuid
      						) from entry-point MESSAGING	
      						
-     	eval(data.info==$kmt)
+     	eval($gD==$victim)
 	then
   	   	modify($kmt){ setGoalState( GoalState.SOLVED ) }
 		delete($mr);
@@ -236,7 +238,7 @@ rule "Objetivo resuelto."
 		$kmt2 : HelpVictim(goalState  == GoalState.SOLVED ) from $gm.goals
     then
   	   	modify($kmt){ setGoalState( GoalState.SOLVING ) }
-		modify($goals){	delGoal($kmt2)	}
+		modify($gm){	delGoal($kmt2)	}
 end
 
 
@@ -245,9 +247,9 @@ rule "Objetivo resuelto 2."
 	when
 		$me	: BaseAgent()
    	   	$gm  : GoalMemory( $goals : goals )
-		eval(not($gm.containsGoalByState(GoalState.PENDING)))
+		not(eval($gm.containsGoalByState(GoalState.PENDING)))
 		$kmt2 : HelpVictim(goalState  == GoalState.SOLVED ) from $gm.goals
     then
-		modify($goals){	delGoal($kmt2)	}
+		modify($gm){	delGoal($kmt2)	}
 end
 
