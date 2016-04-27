@@ -10,7 +10,6 @@ import com.massisframework.massis.dasi.agents.tasks.SimpleTasksFactory;
 import com.massisframework.massis.dasi.events.messages.MessageReceived;
 import com.massisframework.massis.model.agents.LowLevelAgent;
 import com.massisframework.massis.dasi.agents.goals.*;
-import com.massisframework.massis.dasi.agents.goals.AgentGoal.GoalState;
 //robots
 import com.massisframework.massis.dasi.apps.robots.*;
 import com.massisframework.massis.dasi.apps.robots.messages.*;
@@ -70,8 +69,6 @@ rule "HiTeam message Received - It isn't my team."
      		) from entry-point MESSAGING
      	not(eval($team==$info))
  	then
- 	  //$me.getLogger().info("I have a message from other team leader.");
- 	  //$me.getLogger().info("Deleting message from inbox.");
  	  delete($mr);
 end
 
@@ -98,23 +95,6 @@ end
 //-----------------------------------------------------------------------------
 
 
-rule "Receive I have no energy message - But I'm not a Leader"
-    when
-       $me	: SubordinateRobot()
-       $mr		: MessageReceived(
-					data instanceof IHaveNoEnergy,
-					sender instanceof RobotAgent,
-					$sender  : sender,
-					$location : data.info,
-					$uuid : data.uuid
-     		) from entry-point MESSAGING
-     //already knows that the victim should be saved					
-    then
-	 //$me.getLogger().info("Received message from a victim but i'm not a leader.");
-	 //$me.getLogger().info("Deleting message from inbox.");
-	 delete($mr);
-end
-
 
 rule "Received save victim order"
     when
@@ -125,11 +105,9 @@ rule "Received save victim order"
 				$victim : data.info
 			) from entry-point MESSAGING
     then
-	  //ñapa demo
 	  	$me.getLogger().info("Received save victim order");
 	  	modify($me){setIdle(false)}
-	  	insert(new VictimToSave($victim));
-	  
+	  	insert(new VictimToSave($victim));	  
   		HelpVictim kmt = new HelpVictim((VictimRobot)$victim);
  		insert(kmt);
   	    $gm.addGoal(kmt);
@@ -139,29 +117,19 @@ end
 rule "Save victim - approach"
     when	
 		$gm  : GoalMemory()
-		$kmt : HelpVictim ( goalState  == GoalState.PENDING ) from $gm.goals
+		$kmt : HelpVictim ( goalState  == AgentGoal.PENDING ) from $gm.goals
     	VictimToSave($victim : victim)
        	$me	:   SubordinateRobot()
        	LowLevelInfo( location.distance2D($victim.getLocation())>1000)
     then
-	  	//ñapa demo
 	  	AgentTask task = new MoveToTarget();
 	  	task.execute($me,$victim.getLocation());
-	 	//$me.getLogger().info("moving to "+$victim+"for saving");
 end
-/*
-rule "If another victim is seen, recharge it"
-    when
-      LowLevelInfo( $avr: agentsInVisionRadio)
-      LowLevelAgent( $victim : highLevelData  instanceof VictimRobot) from $avr
-    then
- 	  ((VictimRobot)$victim).setEnergy(1000);
-end
-*/
+
 rule "Save victim - recharge"
     when
     	$gm  : GoalMemory()
-	   	$kmt : HelpVictim ( goalState  == GoalState.PENDING ) from $gm.goals
+	   	$kmt : HelpVictim ( goalState  == AgentGoal.PENDING ) from $gm.goals
        	$vts: VictimToSave($victim : victim)
        	$me	:   SubordinateRobot()
        	LowLevelInfo( location.distance2D($victim.getLocation())<=1000)
@@ -172,24 +140,5 @@ rule "Save victim - recharge"
 	  	modify($me){setIdle(true)}
 	  	String uuid=UUID.randomUUID().toString();
 	  	SimpleTasksFactory.sendMessage($me,new VictimSaved($victim, uuid));
-  	  	modify($kmt){ setGoalState( GoalState.SOLVED ) }	   
+  	  	modify($kmt){ setGoalState( AgentGoal.SOLVED ) }	   
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

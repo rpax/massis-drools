@@ -20,10 +20,9 @@ import com.massisframework.massis.dasi.apps.robots.victim.info.*;
 import com.massisframework.massis.dasi.apps.robots.commontasks.*;
 
 
-
-//ruleflow-group([^"]*["][^"]+["])
-
-//declare any global variables here
+/**
+* Inicializacion de WorkMemory.
+**/
 rule "Generate Goal Memory"
 	when
 		not GoalMemory(  )
@@ -31,6 +30,10 @@ rule "Generate Goal Memory"
   		insert(new GoalMemory());
 end
 
+
+/**
+* Selecion de objetivo por parte de trabajador (aleatorio).
+**/
 rule "Select target"	
     when
     	$me : VictimRobot()
@@ -43,6 +46,10 @@ rule "Select target"
 		insert(currentTarget);
 end
 
+
+/**
+* Eliminar objetivo por que estoy cerca. (aleatorio).
+**/
 rule "Less than 1 meter of distance : remove current target"
 	
     when
@@ -53,6 +60,9 @@ rule "Less than 1 meter of distance : remove current target"
 end
 
 
+/**
+* Mover robot hacia objetivo si tiene energia.
+**/
 rule "Move to the target (if has energy)"
 	
     when
@@ -64,6 +74,9 @@ rule "Move to the target (if has energy)"
 	  task.execute($me,$targetLoc);
 end
 
+/**
+* Enviar peticion de ayuda a todos los robots de la simulacion.
+**/
 rule "Send help me message due to lack of energy"
     when
        not(exists(RequestVerified()))
@@ -75,6 +88,10 @@ rule "Send help me message due to lack of energy"
 end
 
 
+/**
+* Eliminacion de check por que la peticion de ayuda ya ha sido atendida y el robot
+* esta a salvo.
+**/
 rule "I have energy."
     when
        $re : RequestVerified()
@@ -83,6 +100,9 @@ rule "I have energy."
    	  delete($re);
 end
 
+/**
+* Check para evitar que la victima envio infinitas veces.
+**/
 rule "Received ACK message"
     when
         $me : VictimRobot(energy <= 0 )
