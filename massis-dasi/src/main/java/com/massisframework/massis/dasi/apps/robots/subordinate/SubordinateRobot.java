@@ -22,6 +22,7 @@ public class SubordinateRobot extends RobotAgent {
 		super(agent, metadata, resourcesFolder);
 		this.setIdle(true);
 		ControladorLog.getInstance().addAgent(this);
+		leader = null;
 	}
 	public void info(String texto,String tipo)
 	{
