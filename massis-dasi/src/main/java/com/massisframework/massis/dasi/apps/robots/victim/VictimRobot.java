@@ -5,6 +5,7 @@ import java.util.Map;
 import org.kie.api.definition.type.PropertyReactive;
 
 import com.massisframework.massis.dasi.apps.robots.RobotAgent;
+import com.massisframework.massis.dasi.logger.ControladorLog;
 import com.massisframework.massis.model.agents.LowLevelAgent;
 
 @PropertyReactive
@@ -18,8 +19,18 @@ public class VictimRobot extends RobotAgent {
 	{
 		super(agent, metadata, resourcesFolder);
 		this.energyConsumption = (float)Math.random()*2+2;
+		ControladorLog.getInstance().addAgent(this);
 	}
-
+	public void info(String texto,String tipo)
+	{
+		ControladorLog.getInstance().appendInfo(this.toString(), texto, tipo);
+	}
+	
+	@Override
+	public String toString()
+	{
+		return "VictimRobot ["+this.agent.getID()+"]";
+	}
 	@Override
 	protected String[] getRulePaths()
 	{

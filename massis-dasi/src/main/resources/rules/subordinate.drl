@@ -51,25 +51,12 @@ rule "HiTeam message Received - It is my team."
  					$uuid    :  data.uuid
      			) from entry-point MESSAGING
  	then
-    	$me.getLogger().info("I have a message from my leader.");
- 	 	$me.getLogger().info("Sending message from Me :"+$me+" -> Leader:"+$sender+".");  
+    	$me.info("HiTeam message Received - It is my team.", "titulo");
+    	$me.info("Recibido mensaje de Hola del lider de mi equipo.", "info");
+	  	$me.setLeader((RobotAgent)$sender);
+ 	  	$me.info("Envio Hola a el lider para que sepa que soy tambien de su equipo.", "envio");
  	  	SimpleTasksFactory.sendMessage($me,$sender,new HiTeamResponseMember($team, $uuid));
 	  	delete($mr);
-end
-
-
-rule "HiTeam message Received - It isn't my team."
-	when
-		$me : SubordinateRobot($team: teamName)
-		$mr : MessageReceived(
-				data instanceof HiTeam,
-				$sender  : sender,
-				$info : data.info,
- 				$uuid    :  data.uuid
-     		) from entry-point MESSAGING
-     	not(eval($team==$info))
- 	then
- 	  delete($mr);
 end
 
 
@@ -84,8 +71,9 @@ rule "You are part of my team message Received."
  				$uuid    :  data.uuid
      		) from entry-point MESSAGING
  	then
- 	  $me.getLogger().info("My team leader knows that i'm a member of the team.");
- 	  delete($mr);
+		$me.info("You are part of my team message Received.", "titulo");
+    	$me.info("Recibida confirmación de adhesion al equipo por parte del lider: "+$sender+".", "info");
+	  	delete($mr);
 end
 
 
@@ -105,7 +93,8 @@ rule "Received save victim order"
 				$victim : data.info
 			) from entry-point MESSAGING
     then
-	  	$me.getLogger().info("Received save victim order");
+		$me.info("Received save victim order", "titulo");
+    	$me.info("Recibida orden de salvar a "+$victim+".", "info");
 	  	modify($me){setIdle(false)}
 	  	insert(new VictimToSave($victim));	  
   		HelpVictim kmt = new HelpVictim((VictimRobot)$victim);
@@ -134,11 +123,14 @@ rule "Save victim - recharge"
        	$me	:   SubordinateRobot()
        	LowLevelInfo( location.distance2D($victim.getLocation())<=1000)
     then
+	  	$me.info("Save victim - recharge", "titulo");
+    	$me.info("Actualizo a "+$victim+" su energia.", "info");
+		$me.info("Envio confirmacion de rescate a el lider: "+$me.getLeader()+".", "envio");
+
 	  	$victim.setEnergy(1000);
-	  	$me.getLogger().info("updating energy");
-	  	delete($vts);
+		delete($vts);
 	  	modify($me){setIdle(true)}
 	  	String uuid=UUID.randomUUID().toString();
-	  	SimpleTasksFactory.sendMessage($me,new VictimSaved($victim, uuid));
+	  	SimpleTasksFactory.sendMessage($me,$me.getLeader(),new VictimSaved($victim, uuid));
   	  	modify($kmt){ setGoalState( AgentGoal.SOLVED ) }	   
 end

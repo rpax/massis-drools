@@ -82,8 +82,10 @@ rule "Send help me message due to lack of energy"
        not(exists(RequestVerified()))
        $me : VictimRobot(energy <= 0 )
     then
-    	$me.getLogger().info("Sending broadcast help me message");
-       	String uuid=UUID.randomUUID().toString();
+    	$me.info("Send help me message due to lack of energy", "titulo");
+    	$me.info("No tengo suficiente energia.", "info");
+   	  	$me.info("Mando mensaje broadcast a todos los robots de la simulacion.", "envio");
+   	  	String uuid=UUID.randomUUID().toString();
 	   	SimpleTasksFactory.sendMessage($me,new IHaveNoEnergy($me.getLocation(), uuid));
 end
 
@@ -97,7 +99,9 @@ rule "I have energy."
        $re : RequestVerified()
        $me : VictimRobot(energy > 0 )
     then
-   	  delete($re);
+    	$me.info("I have energy.", "titulo");
+    	$me.info("Ya tengo energia puedo continuar mi trabajo.", "info");
+   	  	delete($re);
 end
 
 /**
@@ -114,7 +118,8 @@ rule "Received ACK message"
 						$uuid : data.uuid
  					) from entry-point MESSAGING
     then
-	 $me.getLogger().info("Received ACK from "+$sender+". I'm hopeful.");
- 	 insert(new RequestVerified());
-	 delete($mr);
+	 	$me.info("Received ACK message.", "titulo");
+    	$me.info("Recibido mensaje ACK para que no mande mas peticiones de rescate.", "info");
+ 	 	insert(new RequestVerified());
+	 	delete($mr);
 end

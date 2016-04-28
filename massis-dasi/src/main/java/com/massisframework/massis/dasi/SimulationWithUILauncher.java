@@ -6,6 +6,7 @@ import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import com.massisframework.gui.DrawableLayer;
+import com.massisframework.massis.dasi.logger.ControladorLog;
 import com.massisframework.massis.displays.floormap.layers.ConnectionsLayer;
 import com.massisframework.massis.displays.floormap.layers.CrowdDensityLayer;
 import com.massisframework.massis.displays.floormap.layers.DoorLayer;
@@ -37,7 +38,6 @@ public class SimulationWithUILauncher {
 	 *            the building file path
 	 */
 	public static void main(String[] args) {
-
 		String buildingFilePath = null;
 		try {
 			 DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
