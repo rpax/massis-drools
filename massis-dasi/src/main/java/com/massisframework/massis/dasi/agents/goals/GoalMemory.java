@@ -40,5 +40,13 @@ public class GoalMemory {
 				.findAny()
 				.isPresent();
 	}
+	
+	public String toString(){
+		String res = "";
+		for(AgentGoal<?> goal : this.goals){
+			res += goal.getClass() + "," +  goal.getGoalState() + '\n';
+		}
+		return res;
+	}
 
 }

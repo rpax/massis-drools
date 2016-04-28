@@ -16,14 +16,15 @@ import com.massisframework.massis.model.location.Location;
 import com.massisframework.massis.dasi.apps.robots.*;
 import com.massisframework.massis.dasi.apps.robots.messages.*;
 import com.massisframework.massis.dasi.apps.robots.messages.getHelp.*;
+import com.massisframework.massis.dasi.apps.robots.messages.goSafePoint.*;
 import com.massisframework.massis.dasi.apps.robots.victim.info.*;
+import com.massisframework.massis.dasi.apps.robots.victim.goals.*;
 import com.massisframework.massis.dasi.apps.robots.commontasks.*;
 
 
-
-//ruleflow-group([^"]*["][^"]+["])
-
-//declare any global variables here
+/**
+* Inicializacion de WorkMemory.
+**/
 rule "Generate Goal Memory"
 	when
 		not GoalMemory(  )
@@ -31,8 +32,13 @@ rule "Generate Goal Memory"
   		insert(new GoalMemory());
 end
 
+
+/**
+* Selecion de objetivo por parte de trabajador (aleatorio).
+**/
 rule "Select target"	
     when
+    	$gm : GoalMemory( $goals : goals , containsGoalByClass(GoToSafePoint.class)==false)
     	$me : VictimRobot()
     	LowLevelInfo($lla : lowLevelAgent)
         not CurrentTarget()
@@ -43,19 +49,31 @@ rule "Select target"
 		insert(currentTarget);
 end
 
+
+/**
+* Eliminar objetivo por que estoy cerca. (aleatorio).
+**/
 rule "Less than 1 meter of distance : remove current target"
 	
     when
+    	$me : VictimRobot()
+    	$gm : GoalMemory( $goals : goals , containsGoalByClass(GoToSafePoint.class)==false)
     	LowLevelInfo( $currentLoc : location  )
         $currentTarget : CurrentTarget(location.distance2D($currentLoc)<100)
     then
+    	$me.info("Less than 1 meter of distance : remove current target", "titulo");
+    	$me.info("He llegado al destino", "info");
     	delete($currentTarget);
 end
 
 
+/**
+* Mover robot hacia objetivo si tiene energia.
+**/
 rule "Move to the target (if has energy)"
 	
     when
+       //$gm : GoalMemory( $goals : goals , containsGoalByClass(GoToSafePoint.class)==false)
        $me : VictimRobot($energy : energy > 0)
        LowLevelInfo( $currentLoc : location )
        CurrentTarget(location.distance2D($currentLoc)>=100,$targetLoc : location)
@@ -64,28 +82,45 @@ rule "Move to the target (if has energy)"
 	  task.execute($me,$targetLoc);
 end
 
+/**
+* Enviar peticion de ayuda a todos los robots de la simulacion.
+**/
 rule "Send help me message due to lack of energy"
     when
        not(exists(RequestVerified()))
        $me : VictimRobot(energy <= 0 )
     then
-    	$me.getLogger().info("Sending broadcast help me message");
-       	String uuid=UUID.randomUUID().toString();
+    	$me.info("Send help me message due to lack of energy", "titulo");
+    	$me.info("No tengo suficiente energia.", "info");
+   	  	$me.info("Mando mensaje broadcast a todos los robots de la simulacion.", "envio");
+   	  	String uuid=UUID.randomUUID().toString();
 	   	SimpleTasksFactory.sendMessage($me,new IHaveNoEnergy($me.getLocation(), uuid));
 end
 
 
+/**
+* Eliminacion de check por que la peticion de ayuda ya ha sido atendida y el robot
+* esta a salvo.
+**/
 rule "I have energy."
     when
        $re : RequestVerified()
        $me : VictimRobot(energy > 0 )
     then
-   	  delete($re);
+    	$me.info("I have energy.", "titulo");
+    	$me.info("Ya tengo energia puedo continuar mi trabajo.", "info");
+   	  	delete($re);
+   	  	insert(new BatteryVerified());
 end
 
+/**
+* Check para evitar que la victima envio infinitas veces.
+**/
 rule "Received ACK message"
     when
+    	$gm : GoalMemory()
         $me : VictimRobot(energy <= 0 )
+        $currentTarget : CurrentTarget()
         $mr		: MessageReceived(
 						data instanceof IKnowYourState,
 						sender instanceof RobotAgent,
@@ -94,7 +129,79 @@ rule "Received ACK message"
 						$uuid : data.uuid
  					) from entry-point MESSAGING
     then
-	 $me.getLogger().info("Received ACK from "+$sender+". I'm hopeful.");
- 	 insert(new RequestVerified());
-	 delete($mr);
+	 	$me.info("Received ACK message.", "titulo");
+    	$me.info("Recibido mensaje ACK para que no mande mas peticiones de rescate.", "info");
+ 	 	insert(new RequestVerified());
+ 	 	GoToSafePoint kmt = new GoToSafePoint(null);
+ 		insert(kmt);
+  	    modify($gm){addGoal(kmt)};
+	 	delete($mr);
+	 	
+	 	$me.info("He incluido un nuevo objetivo ir al safe point " + $gm.toString(), "info");
+	 	
+	 	// Para ir a a la nueva posicion tenemos que decidir dejar de ir a la que queriamos ir antes
+	 	delete($currentTarget);
+end
+
+/**
+* Enviar peticion de conocer la posicion del safe-point (la de un lider).
+**/
+rule "Ask for leader position, I want to go to the Safe point"
+    when
+       $btv: BatteryVerified();
+       $gm : GoalMemory()
+       $kmt : GoToSafePoint( goalState == AgentGoal.PENDING ) from $gm.goals
+       $me : VictimRobot(energy > 0 )
+    then
+    	$me.info("Ask for leader position, I want to go to the Safe point", "titulo");
+    	$me.info("Me quede sin energia y ya estoy recargado", "info");
+   	  	$me.info("Mando mensaje broadcast a todos los robots de la simulacion.", "envio");
+   	  	String uuid=UUID.randomUUID().toString();
+	   	SimpleTasksFactory.sendMessage($me,new IWantSafePointLocation($me.getLocation(), uuid));
+	   	modify($kmt){ setGoalState( AgentGoal.SOLVING ) }
+	   	delete($btv);
+end
+
+
+/**
+* Recibir la posicion del safe-point.
+**/
+rule "Receive Safe point position"
+    when
+       $gm : GoalMemory()
+       $kmt : GoToSafePoint ( goalState  == AgentGoal.SOLVING ) from $gm.goals
+       $me : VictimRobot(energy > 0 )
+       $mr		: MessageReceived(
+						data instanceof SafePointPosition,
+						sender instanceof RobotAgent,
+						$sender  : sender,
+						$location : data.info,
+						$uuid : data.uuid
+ 					) from entry-point MESSAGING
+    then
+    	$me.info("Receive Safe point position", "titulo");
+    	$me.info("Recibo la posicion del safe point", "info");
+   	  	String uuid=UUID.randomUUID().toString();
+        Location rndLoc = $location;
+		CurrentTarget currentTarget = new CurrentTarget(rndLoc);
+		insert(currentTarget);
+		delete($mr);
+end
+
+/**
+* Estoy cerca del Safe point.
+**/
+rule "Less than 1 meter of distance from Safe Point"
+	
+    when
+        $gm : GoalMemory()
+        $kmt : GoToSafePoint( goalState  == AgentGoal.SOLVING ) from $gm.goals
+        $me : VictimRobot()
+    	LowLevelInfo( $currentLoc : location  )
+        $currentTarget : CurrentTarget(location.distance2D($currentLoc)<1000)
+    then
+    	$me.info("Less than 1 meter of distance from Safe Point", "titulo");
+    	$me.info("He llegado cerca del safe point", "info");
+    	delete($currentTarget);
+    	modify($kmt){ setGoalState( AgentGoal.SOLVED ) }
 end
