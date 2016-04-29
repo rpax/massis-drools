@@ -39,6 +39,20 @@ rule "Generate Goal Memory"
   		insert(new GoalMemory());
 end
 
+rule "Generate victims saved counter"
+	when
+		not VictimsSaved(  )
+ 	then
+  		insert(new VictimsSaved());
+end
+
+rule "Generate victims discovered counter"
+	when
+		not VictimsDiscovered(  )
+ 	then
+  		insert(new VictimsDiscovered());
+end
+
 rule "Add know my team goal if not present"	
 	when
 		$gm : GoalMemory( $goals : goals , containsGoalByClass(KnowMyTeam.class)==false)
@@ -149,8 +163,9 @@ end
 //==================================================================================
 // Victim saving
 //----------------------------------------------------------------------------------
-rule "Receive I have no energy message"
+rule "Receive I have no energy message. Victim unknown"
     when
+       $vsd : VictimsDiscovered()
        $me	: LeaderRobot($teamLeaders : teamLeaders)
        $gm  : GoalMemory( $goals : goals)
        $mr  : MessageReceived(
@@ -160,8 +175,40 @@ rule "Receive I have no energy message"
 							$location : data.info,
 							$uuid : data.uuid
      						) from entry-point MESSAGING
+     	not(VictimKnown(victim==((VictimRobot)$sender)))
  	then
-	   	$me.info("Receive I have no energy message.", "titulo");
+	   	$me.info("Receive I have no energy message. Victim unknown", "titulo");
+    	$me.info("Recibida solicitud de ayuda de "+$sender+" en el punto "+$location, "info");
+    	$me.info("Nueva victima "+$sender+" .Descubiertas: "+($vsd.getNumDiscovered()+1), "info");
+ 	  	$me.info("Envio de ACK a "+$sender+".", "envio");
+	   	SimpleTasksFactory.sendMessage($me,$sender,new IKnowYourState($uuid));
+	 
+	 	insert(new TeamNegotiationToSaveVictim($teamLeaders.size(),(VictimRobot)$sender,NegotiationStatus.NOT_STARTED));
+	
+		insert(new VictimKnown((VictimRobot)$sender));
+		modify($vsd){increaseNumDiscovered()}
+	
+	   	HelpVictim hv = new HelpVictim((VictimRobot)$sender);
+	   	insert(hv);
+	   	$gm.addGoal(hv);
+	   	delete($mr);
+end
+
+rule "Receive I have no energy message. Victim already known"
+    when
+       $vsd : VictimsDiscovered()
+       $me	: LeaderRobot($teamLeaders : teamLeaders)
+       $gm  : GoalMemory( $goals : goals)
+       $mr  : MessageReceived(
+							data instanceof IHaveNoEnergy,
+							sender instanceof VictimRobot,
+							$sender  : sender,
+							$location : data.info,
+							$uuid : data.uuid
+     						) from entry-point MESSAGING
+		$vck : VictimKnown(victim==(VictimRobot)$sender)
+ 	then
+	   	$me.info("Receive I have no energy message. Victim already known", "titulo");
     	$me.info("Recibida solicitud de ayuda de "+$sender+" en el punto "+$location, "info");
  	  	$me.info("Envio de ACK a "+$sender+".", "envio");
 	   	SimpleTasksFactory.sendMessage($me,$sender,new IKnowYourState($uuid));
@@ -217,7 +264,7 @@ rule "I receive one message about victim negotiation. $tr<bestEva"
  				) from entry-point MESSAGING	
 		$tnl : TeamNegotiationToSaveVictim(
        				$b : bestEva,
-       				bestEva>$tr.getValue(),
+       				//bestEva>$tr.getValue(),
 					$victim : victim,
 					$victim == $tr.getVictim(),
 					status==NegotiationStatus.WAITING_FOR_RESPONSE)
@@ -344,6 +391,8 @@ end
 
 
 
+
+
 rule "Receive notification about victim saved - PENDING GOAL"
     when
         $gm : GoalMemory( )
@@ -397,7 +446,7 @@ end
 //==================================================================================
 // Victim safe point managment
 //----------------------------------------------------------------------------------
-rule "Receive I want safe point location"
+rule "Receive I want safe point location. I am the closest leader"
     when
        $me	: LeaderRobot($teamLeaders : teamLeaders)
        $gm  : GoalMemory( $goals : goals)
@@ -408,11 +457,123 @@ rule "Receive I want safe point location"
 							$location : data.info,
 							$uuid : data.uuid
      						) from entry-point MESSAGING
+        eval( $me.closestLeaderTo($location) == true )
  	then
-	   	$me.info("Receive I want safe point location.", "titulo");
+	   	$me.info("Receive I want safe point location. I am the closest leader", "titulo");
     	$me.info("Recibida solicitud de safe point de "+$sender+" en el punto "+$location, "info");
  	  	$me.info("Envio de mi posicion a "+$sender+".", "envio");
 	   	SimpleTasksFactory.sendMessage($me,$sender,new SafePointPosition($me.getLocation(), $uuid));
 	   	
 	   	delete($mr);
+end
+
+rule "Receive I want safe point location. I am not the closest leader"
+    when
+       $me	: LeaderRobot($teamLeaders : teamLeaders)
+       $gm  : GoalMemory( $goals : goals)
+       $mr  : MessageReceived(
+							data instanceof IWantSafePointLocation,
+							sender instanceof VictimRobot,
+							$sender  : sender,
+							$location : data.info,
+							$uuid : data.uuid
+     						) from entry-point MESSAGING
+        eval( $me.closestLeaderTo($location) == false )
+ 	then
+	   	$me.info("Receive I want safe point location. I am not the closest leader", "titulo");
+    	$me.info("Recibida solicitud de safe point de "+$sender+" en el punto "+$location, "info");
+	   	
+	   	delete($mr);
+end
+
+
+rule "Receive Safe point reached."
+    when
+       $me	: LeaderRobot()
+       $vs  : VictimsSaved()
+       $vsd : VictimsDiscovered()
+       $mr  : MessageReceived(
+							data instanceof SafePointReached,
+							sender instanceof VictimRobot,
+							$sender  : sender,
+							$location : data.info,
+							$uuid : data.uuid
+     						) from entry-point MESSAGING
+ 	then
+	   	$me.info("Receive Safe Point Reached", "titulo");
+    	$me.info("Recibida informacion de safe point alncanzado de "+$sender +"."+
+    	         "Numero de victimas salvadas: " + ($vs.getNumSaved()+1) +
+    	         " Numero de victimas descubiertas: " + ($vsd.getNumDiscovered()), "info");
+	   	modify($vs){increaseNumSaved()}
+	   	System.out.println($vs.getNumSaved()==$vsd.getNumDiscovered());
+	   	delete($mr);
+end
+
+
+//==================================================================================
+// Subordinate retreat
+//----------------------------------------------------------------------------------
+
+rule "All victims saved."
+	when
+		$vsd : VictimsDiscovered()
+		$vs  : VictimsSaved()
+		eval($vs.getNumSaved()==$vsd.getNumDiscovered())
+		eval($vs.getNumSaved()>0)
+		$gm : GoalMemory( $goals : goals , containsGoalByClass(RetreatSubordinates.class)==false)
+		not(HelpVictim(goalState  == AgentGoal.PENDING))
+		not(HelpVictim(goalState  == AgentGoal.SOLVING))
+		$me	: LeaderRobot($teamMembers : teamMembers)
+	then
+		$me.info("All victims saved", "titulo");
+    	$me.info("Todas las victimas salvadas", "info");
+    	$me.info("Envio de orden de retirada a todos mis subordinados." + 
+    			 "Numero de victimas salvadas: " + ($vs.getNumSaved()) +
+    	         " Numero de victimas descubiertas: " + ($vsd.getNumDiscovered()), "envio");
+    	System.out.println($vs.getNumSaved()==$vsd.getNumDiscovered());
+    	
+		String uuid=UUID.randomUUID().toString();
+		SimpleTasksFactory.sendMessageMultiples($me,$teamMembers,new GoToLeader($me, uuid));
+		
+		RetreatSubordinates kmt = new RetreatSubordinates();
+ 		insert(kmt);
+ 		modify(kmt){ setGoalState( AgentGoal.SOLVING ) }
+  	    modify($gm){addGoal(kmt)};
+  	    
+  	    insert(new SubordinatesReturned());
+end
+
+rule "Receive Subordinate retreatment ACK."
+	when
+		$gm : GoalMemory()
+        $kmt : RetreatSubordinates ( goalState == AgentGoal.SOLVING )
+		$me	: LeaderRobot($teamMembers : teamMembers)
+		$mr  : MessageReceived(
+							data instanceof ACKGoToLeader,
+							sender instanceof SubordinateRobot,
+							$sender  : sender,
+							$subordinate : data.info,
+							$uuid : data.uuid
+     						) from entry-point MESSAGING
+     	$sbr : SubordinatesReturned()
+	then
+		$me.info("Receive Subordinate retreatment ACK.", "titulo");
+    	$me.info("He recibido un ack del subordinado" + $subordinate + ".", "info");
+    	
+    	delete($mr);
+    	modify($sbr){ increaseNumReturned() }
+end
+
+
+rule "All subordinates ACK."
+	when
+		$gm : GoalMemory()
+        $kmt : RetreatSubordinates ( goalState == AgentGoal.SOLVING )
+		$me : LeaderRobot($teamMembers : teamMembers)
+		$sbr  : SubordinatesReturned( getNumReturned()== $teamMembers.size() )
+	then
+		$me.info("Receive LAST Subordinate retreatment ACK.", "titulo");
+    	$me.info("Todos los subordinados me an contestado.", "info");
+	
+		 modify($kmt){ setGoalState( AgentGoal.SOLVED ) }
 end

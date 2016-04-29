@@ -149,6 +149,10 @@ rule "Received go to leader order"
     then
 		$me.info("Received go to leader order", "titulo");
     	$me.info("Recibida orden de volver con el lider "+$ra+".", "info");
+    	
+    	String uuid=UUID.randomUUID().toString();
+	  	SimpleTasksFactory.sendMessage($me,$me.getLeader(),new ACKGoToLeader($me, uuid));
+    	
 	  	modify($me){setIdle(false)} 
   		ReturnToLeader kmt = new ReturnToLeader ((LeaderRobot)$ra);
  		insert(kmt);
@@ -156,26 +160,43 @@ rule "Received go to leader order"
 	  	delete($mr);
 end
 
-rule "Go to leader - approach"
+rule "Go to leader - initial approach"
     when	
 		$gm  : GoalMemory()
-		$kmt : ReturnToLeader ( goalState  == AgentGoal.PENDING ) from $gm.goals
+		$kmt : ReturnToLeader ( goalState  == AgentGoal.PENDING )
        	$me	:   SubordinateRobot( $ra : leader )
        	LowLevelInfo( location.distance2D($ra.getLocation())>1000)
     then
+    	$me.info("Go to leader - initial approach", "titulo");
+    	$me.info("Acercandome a mi lider "+$ra+".", "info");
+    
 	  	AgentTask task = new MoveToTarget();
 	  	task.execute($me,$ra.getLocation());
 	  	modify($kmt){ setGoalState( AgentGoal.SOLVING ) }
 end
 
+rule "Go to leader - incremental approach"
+    when	
+		$gm  : GoalMemory()
+		$kmt : ReturnToLeader ( goalState  == AgentGoal.SOLVING )
+       	$me	:   SubordinateRobot( $ra : leader )
+       	LowLevelInfo( location.distance2D($ra.getLocation())>1000)
+    then
+    	//$me.info("Go to leader - incremental approach", "titulo");
+    	//$me.info("Acercandome a mi lider "+$ra+".", "info");
+    
+	  	AgentTask task = new MoveToTarget();
+	  	task.execute($me,$ra.getLocation());
+end
+
 rule "Go to leader - arrive"
     when
     	$gm  : GoalMemory()
-	   	$kmt : ReturnToLeader  ( goalState  == AgentGoal.SOLVING ) from $gm.goals
+	   	$kmt : ReturnToLeader  ( goalState  == AgentGoal.SOLVING )
        	$me	:   SubordinateRobot( $ra : leader )
        	LowLevelInfo( location.distance2D($ra.getLocation())<=1000)
     then
-	  	$me.info("Save victim - recharge", "titulo");
+	  	$me.info("Go to leader - arrive", "titulo");
     	$me.info("Llego a mi lider "+$ra+".", "info");
 
 	  	modify($me){setIdle(true)}

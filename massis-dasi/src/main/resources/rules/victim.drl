@@ -195,13 +195,16 @@ rule "Less than 1 meter of distance from Safe Point"
 	
     when
         $gm : GoalMemory()
-        $kmt : GoToSafePoint( goalState  == AgentGoal.SOLVING ) from $gm.goals
+        $kmt : GoToSafePoint ( goalState == AgentGoal.SOLVING )
         $me : VictimRobot()
     	LowLevelInfo( $currentLoc : location  )
-        $currentTarget : CurrentTarget(location.distance2D($currentLoc)<1000)
+        $currentTarget : CurrentTarget(location.distance2D($currentLoc)<100)
     then
     	$me.info("Less than 1 meter of distance from Safe Point", "titulo");
     	$me.info("He llegado cerca del safe point", "info");
+    	//$me.info("Mis objetivos" + $gm.toString() + ".", "info");
     	delete($currentTarget);
     	modify($kmt){ setGoalState( AgentGoal.SOLVED ) }
+    	String uuid=UUID.randomUUID().toString();
+	   	SimpleTasksFactory.sendMessage($me,new SafePointReached($me.getLocation(), uuid));
 end

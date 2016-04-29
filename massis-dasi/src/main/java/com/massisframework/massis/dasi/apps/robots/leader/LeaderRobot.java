@@ -13,6 +13,7 @@ import com.massisframework.massis.dasi.apps.robots.leader.info.VictimToSave;
 import com.massisframework.massis.dasi.apps.robots.victim.VictimRobot;
 import com.massisframework.massis.dasi.logger.ControladorLog;
 import com.massisframework.massis.model.agents.LowLevelAgent;
+import com.massisframework.massis.model.location.Location;
 
 @PropertyReactive
 public class LeaderRobot extends RobotAgent {
@@ -149,5 +150,15 @@ public class LeaderRobot extends RobotAgent {
 			}
 		}
 		return res;
+	}
+	
+	public boolean closestLeaderTo(Location loc){
+		double myDistance = this.distanceTo(loc);
+		double distance = Double.POSITIVE_INFINITY;
+		for(RobotAgent leader : this.teamLeaders){
+			if(leader.distanceTo(loc) < distance)
+				distance = leader.distanceTo(loc);
+		}
+		return myDistance < distance; 
 	}
 }
