@@ -82,6 +82,7 @@ public class LeaderRobot extends RobotAgent {
 	public void addTeamMember(RobotAgent teamMember)
 	{
 		this.teamMembers.add(teamMember);
+
 	}
 	
 	@Modifies("teamLeaders")

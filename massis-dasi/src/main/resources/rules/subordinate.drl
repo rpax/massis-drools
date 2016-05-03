@@ -56,7 +56,7 @@ rule "HiTeam message Received - It is my team."
 	  	$me.setLeader((RobotAgent)$sender);
  	  	$me.info("Envio Hola a el lider para que sepa que soy tambien de su equipo.", "envio");
  	  	SimpleTasksFactory.sendMessage($me,$sender,new HiTeamResponseMember($team, $uuid));
-	  	delete($mr);
+	  	retract($mr);
 end
 
 
@@ -73,7 +73,7 @@ rule "You are part of my team message Received."
  	then
 		$me.info("You are part of my team message Received.", "titulo");
     	$me.info("Recibida confirmación de adhesion al equipo por parte del lider: "+$sender+".", "info");
-	  	delete($mr);
+	  	retract($mr);
 end
 
 
@@ -100,7 +100,7 @@ rule "Received save victim order"
   		HelpVictim kmt = new HelpVictim((VictimRobot)$victim);
  		insert(kmt);
   	    $gm.addGoal(kmt);
-	  	delete($mr);
+	  	retract($mr);
 end
 
 rule "Save victim - approach"
@@ -128,7 +128,7 @@ rule "Save victim - recharge"
 		$me.info("Envio confirmacion de rescate a el lider: "+$me.getLeader()+".", "envio");
 
 	  	$victim.setEnergy(1000);
-		delete($vts);
+		retract($vts);
 	  	modify($me){setIdle(true)}
 	  	String uuid=UUID.randomUUID().toString();
 	  	SimpleTasksFactory.sendMessage($me,$me.getLeader(),new VictimSaved($victim, uuid));
