@@ -79,14 +79,14 @@ end
 **/
 rule "Send help me message due to lack of energy"
     when
-       not(exists(RequestVerified()))
-       $me : VictimRobot(energy <= 0 )
+       $me : VictimRobot(energy <= 0 , esperando == false)
     then
     	$me.info("Send help me message due to lack of energy", "titulo");
     	$me.info("No tengo suficiente energia.", "info");
    	  	$me.info("Mando mensaje broadcast a todos los robots de la simulacion.", "envio");
    	  	String uuid=UUID.randomUUID().toString();
 	   	SimpleTasksFactory.sendMessage($me,new IHaveNoEnergy($me.getLocation(), uuid));
+	   	modify($me){setEsperando(true)}
 end
 
 
@@ -96,12 +96,12 @@ end
 **/
 rule "I have energy."
     when
-       $re : RequestVerified()
-       $me : VictimRobot(energy > 0 )
+       $me : VictimRobot(energy > 0
+       						, esperando ==true )
     then
     	$me.info("I have energy.", "titulo");
     	$me.info("Ya tengo energia puedo continuar mi trabajo.", "info");
-   	  	delete($re);
+	   	modify($me){setEsperando(false)}
 end
 
 /**
@@ -120,6 +120,5 @@ rule "Received ACK message"
     then
 	 	$me.info("Received ACK message.", "titulo");
     	$me.info("Recibido mensaje ACK para que no mande mas peticiones de rescate.", "info");
- 	 	insert(new RequestVerified());
-	 	delete($mr);
+	 	retract($mr);
 end

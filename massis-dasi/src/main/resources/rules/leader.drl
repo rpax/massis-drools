@@ -83,7 +83,7 @@ rule "Received HiTeamResponseMember"
  	  $me.info("Le voy a comunicar que ha sido añadido.", "mensaje");
  	  SimpleTasksFactory.sendMessage($me,$sender,new YouArePartOfMyTeam("1",$uuid));
  	  modify($me){ addTeamMember((RobotAgent)$sender)}
- 	  delete($mr);
+ 	  retract($mr);
 end
 
 rule "Received HiTeamResponseLeader"
@@ -103,7 +103,7 @@ rule "Received HiTeamResponseLeader"
  	  	$me.info("Le voy a comunicar que ha sido añadido.", "mensaje");
  	  	SimpleTasksFactory.sendMessage($me,$sender,new AddedToMyPoolLeader("1",$uuid));
  	  	modify($me){ addTeamLeader((RobotAgent)$sender)}
- 	  	delete($mr);
+ 	  	retract($mr);
 end
 
 rule "Received HiTeam"
@@ -122,7 +122,7 @@ rule "Received HiTeam"
  		$me.info("He recibido un mensaje de Hola de "+$sender+".", "info");
  		$me.info("Le voy a comunicar que soy un lider.", "mensaje");
  	  	SimpleTasksFactory.sendMessage($me,$sender,new HiTeamResponseLeader($team,$uuid));
- 	  	delete($mr);
+ 	  	retract($mr);
 end
 
 
@@ -139,7 +139,7 @@ rule "AddedToPoolLeader"
  	then  	 	
  		$me.info("AddedToPoolLeader.", "titulo");
     	$me.info($sender+" me ha añadido a su pool de lideres de equipo.", "info");
- 	  	delete($mr);
+ 	  	retract($mr);
 end
 
 
@@ -170,7 +170,7 @@ rule "Receive I have no energy message"
 	   	HelpVictim hv = new HelpVictim((VictimRobot)$sender);
 	   	insert(hv);
 	   	$gm.addGoal(hv);
-	   	delete($mr);
+	   	retract($mr);
 end
 
 
@@ -216,7 +216,6 @@ rule "I receive one message about victim negotiation. $tr<bestEva"
  				) from entry-point MESSAGING	
 		$tnl : TeamNegotiationToSaveVictim(
        				$b : bestEva,
-       				bestEva>$tr.getValue(),
 					$victim : victim,
 					$victim == $tr.getVictim(),
 					status==NegotiationStatus.WAITING_FOR_RESPONSE)
@@ -226,7 +225,7 @@ rule "I receive one message about victim negotiation. $tr<bestEva"
     	$me.info("He recibido una valoracion que es mejor que cualquiera que haya recibido antes para la victima "+$victim+".", "info");
    		$tnl.setBestEva($tr.getValue());
 		modify($tnl){setNResponse(1)}
-	   	delete($mr);		
+	   	retract($mr);		
 end
 
 
@@ -247,7 +246,6 @@ rule "I receive one message about victim negotiation. bestEva<Nueva valoracion."
  				) from entry-point MESSAGING	
 		$tnl : TeamNegotiationToSaveVictim(
        				$b :	bestEva,
-       				bestEva<$tr.getValue(),
 					$victim : victim,
 					$victim == $tr.getVictim(),
 					
@@ -257,7 +255,7 @@ rule "I receive one message about victim negotiation. bestEva<Nueva valoracion."
 		$me.info("I receive one message about victim negotiation. bestEva<Nueva valoracion.", "titulo");
     	$me.info("He recibido una nueva valoracion para la victima "+$victim+" pero es peor que la mejor que he recibido.", "info");
 		modify($tnl){setNResponse(1)}
-	   	delete($mr);		
+	   	retract($mr);		
 end
 
 
@@ -293,7 +291,7 @@ rule "Save victim?? Yes"
 		$me.info("El robot "+s+" tiene la tarea de rescatar a "+$victim+".", "envio");
 		
 		insert(new VictimAssignedToSubordinate($victim, s));
-		delete($tnl);
+		retract($tnl);
    	   	modify($kmt){ setGoalState( AgentGoal.SOLVING ) }	  
 end
 
@@ -317,7 +315,7 @@ rule "Save victim?? No"
      	$me.info("Save victim?? No", "titulo");
     	$me.info("Mi equipo no tiene la mejor valoracion para "+$victim+" pero alguien puede asistirla.", "info");
 		
-		delete($tnl);  	   	
+		retract($tnl);  	   	
   	   	modify($kmt){ setGoalState( AgentGoal.SOLVED ) }	  
 end
 
@@ -338,7 +336,7 @@ rule "Save victim?? Pending"
      then
      	$me.info("Save victim?? Pending", "titulo");
     	$me.info("Nadie puede rescatar por ahora a "+$victim+" este objetivo se mantiene pendiente.", "info");
-		delete($tnl);  	   	
+		retract($tnl);  	   	
 end
 
 
@@ -385,9 +383,9 @@ rule "Receive notification about victim saved - NO PENDING GOAL"
      	$kmt : HelpVictim ( $victim == goalData, 
        					goalState  == AgentGoal.SOLVING ) from $gm.goals
     then
-    	$me.info("Receive notification about victim saved - PENDING GOAL", "titulo");
+    	$me.info("Receive notification about victim saved - NO PENDING GOAL", "titulo");
     	$me.info("Proceso la eliminacion del mensaje de tarea realizada y paso el objetivo a solucionado.", "info");
 		modify($kmt){ setGoalState( AgentGoal.SOLVED ) }	
-	   	delete($mr);
-	   	delete($vas);
+	   	retract($mr);
+	   	retract($vas);
 end
