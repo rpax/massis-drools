@@ -1,7 +1,5 @@
 package com.massisframework.massis.dasi.apps.robots;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -41,8 +39,6 @@ public abstract class RobotAgent extends RuleHighLevelController {
 		this.logger = Logger.getLogger("RobotAgent_" + this.agent.getID());
 		this.energy = 1000;
 		agent.setMaxSpeed(agent.getMaxSpeed()+agent.getMaxSpeed()*Math.random());
-
-		
 	}
 
 	public String getTeamName()
@@ -54,10 +50,6 @@ public abstract class RobotAgent extends RuleHighLevelController {
 	{
 		return this.teamName != null;
 	}
-
-
-
-	
 	public Location getLocation()
 	{
 		return this.agent.getLocation();
@@ -68,19 +60,10 @@ public abstract class RobotAgent extends RuleHighLevelController {
 	{
 		this.teamName = teamName;
 	}
-
-	
-	
-	public Logger getLogger()
-	{
-		return logger;
-	}
-
 	public float getEnergy()
 	{
 		return energy;
 	}
-
 	@Modifies("energy")
 	public void setEnergy(float energy)
 	{

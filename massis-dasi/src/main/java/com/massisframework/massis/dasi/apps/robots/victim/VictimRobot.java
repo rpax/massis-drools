@@ -18,19 +18,15 @@ public class VictimRobot extends RobotAgent {
 			String resourcesFolder)
 	{
 		super(agent, metadata, resourcesFolder);
-		this.energyConsumption = (float)Math.random()*2+2;
-		ControladorLog.getInstance().addAgent(this);
+		this.energyConsumption = (float) Math.random() * 2 + 2;
 	}
-	public void info(String texto,String tipo)
-	{
-		ControladorLog.getInstance().appendInfo(this.toString(), texto, tipo);
-	}
-	
+
 	@Override
 	public String toString()
 	{
-		return "VictimRobot ["+this.agent.getID()+"]";
+		return "VictimRobot [" + this.agent.getID() + "]";
 	}
+
 	@Override
 	protected String[] getRulePaths()
 	{

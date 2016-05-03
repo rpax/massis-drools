@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.canvas.*?>
+<?import javafx.scene.chart.*?>
+<?import javafx.scene.text.*?>
+<?import java.lang.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.layout.BorderPane?>
+
+<BorderPane prefHeight="782.0" prefWidth="1147.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.massisframework.gui.javafx.AppController">
+   <top>
+      <MenuBar BorderPane.alignment="CENTER">
+        <menus>
+          <Menu mnemonicParsing="false" text="File">
+            <items>
+              <MenuItem mnemonicParsing="false" text="Close" />
+            </items>
+          </Menu>
+          <Menu mnemonicParsing="false" text="Edit">
+            <items>
+              <MenuItem mnemonicParsing="false" text="Delete" />
+            </items>
+          </Menu>
+          <Menu mnemonicParsing="false" text="Help">
+            <items>
+              <MenuItem mnemonicParsing="false" text="About" />
+            </items>
+          </Menu>
+        </menus>
+      </MenuBar>
+   </top>
+   <left>
+      <TableView fx:id="agentsTable" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+        <columns>
+          <TableColumn fx:id="agentsTableColumnId" prefWidth="44.0" text="AgentId" />
+          <TableColumn fx:id="agentsTableColumnClassName" prefWidth="155.0" text="Info" />
+        </columns>
+      </TableView>
+   </left>
+   <center>
+      <SplitPane dividerPositions="0.5206391478029294" orientation="VERTICAL">
+         <items>
+            <TabPane prefHeight="200.0" prefWidth="200.0" tabClosingPolicy="UNAVAILABLE" BorderPane.alignment="CENTER">
+              <tabs>
+                <Tab text="Agent Info">
+                     <content>
+                        <Accordion>
+                           <panes>
+                              <TitledPane animated="false" expanded="false" prefHeight="206.0" prefWidth="421.0" text="Properties">
+                                <content>
+                                  <AnchorPane>
+                                       <children>
+                                          <Label layoutX="14.0" layoutY="14.0" text="Agent Name" />
+                                          <Label layoutX="106.0" layoutY="14.0" text="Rafa" />
+                                       </children>
+                                    </AnchorPane>
+                                </content>
+                              </TitledPane>
+                              <TitledPane animated="false" prefHeight="190.0" prefWidth="421.0" text="Logs">
+                                <content>
+                                  <AnchorPane>
+                                       <children>
+                                          <TableView fx:id="agentLog" layoutX="14.0" layoutY="-39.0" prefHeight="143.0" prefWidth="398.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                                            <columns>
+                                                <TableColumn fx:id="tickColumn" prefWidth="75.0" text="Tick" />
+                                              <TableColumn fx:id="agentLogLevelColumn" prefWidth="112.99999845027924" text="Log Level" />
+                                              <TableColumn fx:id="agentLogLevelMessage" prefWidth="264.00000762939453" text="Value" />
+                                            </columns>
+                                          </TableView>
+                                       </children>
+                                    </AnchorPane>
+                                </content>
+                              </TitledPane>
+                           </panes>
+                        </Accordion>
+                     </content>
+                </Tab>
+                  <Tab text="Agent Statistics">
+                    <content>
+                      <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                           <children>
+                              <ScrollPane cacheShape="false" fitToHeight="true" fitToWidth="true" prefHeight="339.0" prefViewportHeight="2800.0" prefViewportWidth="500.0" prefWidth="945.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                                 <content>
+                                    <VBox fx:id="chartVBox" cacheShape="false">
+                                       <children>
+                                          <HBox cacheShape="false">
+                                             <children>
+                                                <AreaChart>
+                                                  <xAxis>
+                                                    <CategoryAxis side="BOTTOM" />
+                                                  </xAxis>
+                                                  <yAxis>
+                                                    <NumberAxis side="LEFT" />
+                                                  </yAxis>
+                                                </AreaChart>
+                                                <BubbleChart cacheShape="false">
+                                                  <xAxis>
+                                                    <NumberAxis side="BOTTOM" />
+                                                  </xAxis>
+                                                  <yAxis>
+                                                    <NumberAxis side="LEFT" />
+                                                  </yAxis>
+                                                </BubbleChart>
+                                             </children>
+                                          </HBox>
+                                       </children>
+                                    </VBox>
+                                 </content>
+                              </ScrollPane>
+                           </children>
+                        </AnchorPane>
+                    </content>
+                  </Tab>
+                <Tab text="Global Statistics">
+                  <content>
+                    <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0" />
+                  </content>
+                </Tab>
+              </tabs>
+            </TabPane>
+            <BorderPane prefHeight="200.0" prefWidth="200.0">
+               <top>
+                  <AnchorPane>
+                     <children>
+                        <ComboBox fx:id="floorCombobox" prefHeight="25.0" prefWidth="398.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" BorderPane.alignment="CENTER" />
+                     </children>
+                  </AnchorPane>
+               </top>
+               <center>
+                  <SplitPane dividerPositions="0.27525252525252525">
+                     <items>
+                        <ScrollPane fx:id="layersListPane" prefViewportHeight="329.0" prefViewportWidth="256.0" />
+                        <AnchorPane fx:id="simulationFrameWrapper" BorderPane.alignment="CENTER" />
+                     </items>
+                  </SplitPane>
+               </center>
+            </BorderPane>
+         </items>
+      </SplitPane>
+   </center>
+</BorderPane>

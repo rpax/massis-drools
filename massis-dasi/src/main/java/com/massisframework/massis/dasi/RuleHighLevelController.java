@@ -1,5 +1,7 @@
 package com.massisframework.massis.dasi;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -7,12 +9,15 @@ import org.drools.core.time.SessionPseudoClock;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.rule.FactHandle;
 
+import com.massisframework.gui.javafx.LoggerProvider;
+import com.massisframework.gui.javafx.SimulationLoggable;
 import com.massisframework.massis.dasi.lowlevel.LowLevelInfo;
 import com.massisframework.massis.dasi.lowlevel.SimTick;
 import com.massisframework.massis.model.agents.HighLevelController;
 import com.massisframework.massis.model.agents.LowLevelAgent;
 
-public class RuleHighLevelController extends HighLevelController {
+public class RuleHighLevelController extends HighLevelController
+		implements SimulationLoggable {
 
 	private static final long serialVersionUID = 1L;
 	private KieSession kieSession;
@@ -20,6 +25,7 @@ public class RuleHighLevelController extends HighLevelController {
 	private FactHandle lowLevelInfoHandle;
 	private SimTick simTick;
 	private RuleContext ruleEnv;
+	private List<LoggerProvider> loggerProviders;
 
 	public RuleHighLevelController(LowLevelAgent agent,
 			Map<String, String> metadata, String resourcesFolder)
@@ -29,6 +35,7 @@ public class RuleHighLevelController extends HighLevelController {
 		this.ruleEnv = RuleContext.getInstanceFor(this);
 		this.kieSession = this.ruleEnv.createKieSession(this,
 				this.getRulePaths());
+		this.loggerProviders = new ArrayList<>();
 
 	}
 
@@ -36,6 +43,25 @@ public class RuleHighLevelController extends HighLevelController {
 	{
 		String[] paths = metadata.get("rules").split(",");
 		return paths;
+	}
+
+	@Override
+	public void info(String msg, String tipo)
+	{
+		for (LoggerProvider loggerProvider : loggerProviders)
+		{
+			loggerProvider.info(this, this.simTick.getTick(), tipo, msg);
+		}
+	}
+
+	public void addLoggerProvider(LoggerProvider lp)
+	{
+		this.loggerProviders.add(lp);
+	}
+
+	public void removeLoggerProvider(LoggerProvider lp)
+	{
+		this.loggerProviders.remove(lp);
 	}
 
 	@Override

@@ -31,11 +31,11 @@ public class LeaderRobot extends RobotAgent {
 		this.setIdle(false);
 		this.teamMembers = new ArrayList<>();
 		this.teamLeaders = new ArrayList<>();
-		ControladorLog.getInstance().addAgent(this);
+		//ControladorLog.getInstance().addAgent(this);
 	}
 	public void info(String texto,String tipo)
 	{
-		ControladorLog.getInstance().appendInfo(this.toString(), texto, tipo);
+		//ControladorLog.getInstance().appendInfo(this.toString(), texto, tipo);
 	}
 	@Override
 	protected String[] getRulePaths()

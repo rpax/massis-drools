@@ -3,10 +3,13 @@ package com.massisframework.massis.dasi;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.swing.SwingUtilities;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import com.massisframework.gui.DrawableLayer;
-import com.massisframework.massis.dasi.logger.ControladorLog;
+import com.massisframework.gui.javafx.Simulation2DGUI;
+import com.massisframework.massis.dasi.apps.robots.victim.VictimRobot;
+import com.massisframework.massis.dasi.gui.VictimRobotChartHandler;
 import com.massisframework.massis.displays.floormap.layers.ConnectionsLayer;
 import com.massisframework.massis.displays.floormap.layers.CrowdDensityLayer;
 import com.massisframework.massis.displays.floormap.layers.DoorLayer;
@@ -25,25 +28,34 @@ import com.massisframework.massis.displays.floormap.layers.WallLayer;
 import com.massisframework.massis.sim.Simulation;
 import com.massisframework.massis.sim.SimulationWithUI;
 
+import javafx.application.Platform;
+import javafx.embed.swing.JFXPanel;
 import sim.display.Console;
 import sim.display.GUIState;
 
 public class SimulationWithUILauncher {
 
-	static{
+	static
+	{
 		System.setProperty("com.eteks.sweethome3d.no3D", "true");
 	}
+
 	/**
 	 * @param args
 	 *            the building file path
 	 */
-	public static void main(String[] args) {
+	public static void main(String[] args)
+	{
 		String buildingFilePath = null;
-		try {
-			 DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		try
+		{
+			DocumentBuilderFactory factory = DocumentBuilderFactory
+					.newInstance();
 			System.out.println(factory);
-			buildingFilePath = "robots.sh3d";
-		} catch (final Exception e) {
+			buildingFilePath = "simplehouse.sh3d";
+		}
+		catch (final Exception e)
+		{
 			Logger.getLogger(SimulationWithUILauncher.class.getName())
 					.log(Level.SEVERE, "Error when loading home. Exiting", e);
 			System.exit(-1);
@@ -56,7 +68,7 @@ public class SimulationWithUILauncher {
 
 		final Simulation simState = new Simulation(System.currentTimeMillis(),
 				buildingFilePath, resourceFolderPath, null);
-		
+
 		/**
 		 * Basic Layers. Can be added more, or removed.
 		 */
@@ -86,7 +98,20 @@ public class SimulationWithUILauncher {
 		//
 		c.pressPlay();
 		c.pressPause();
-		c.setVisible(true);
+		SwingUtilities.invokeLater(() -> {
+			new JFXPanel();
+			Platform.runLater(() -> {
+				
+				Simulation2DGUI s2dgui = new Simulation2DGUI(
+						"Simulation 2D GUI 1.1",
+						simState, floorMapLayers);
+				simState.getBuilding().registerDisplays(s2dgui);
+				s2dgui.addChartHandler(VictimRobot.class, VictimRobotChartHandler.class);
+				s2dgui.start();
+				c.setVisible(true);
+
+			});
+		});
 
 	}
 

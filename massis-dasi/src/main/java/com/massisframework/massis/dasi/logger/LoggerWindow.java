@@ -1,15 +1,20 @@
 package com.massisframework.massis.dasi.logger;
 
-import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.EventQueue;
+import java.awt.Component;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.HashMap;
 
+import javax.swing.BoxLayout;
+import javax.swing.DefaultListModel;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTextPane;
 import javax.swing.border.EmptyBorder;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
@@ -18,15 +23,6 @@ import javax.swing.text.StyledDocument;
 
 import com.massisframework.massis.dasi.agentViewer.VisorDialogo;
 import com.massisframework.massis.dasi.apps.robots.RobotAgent;
-
-import javax.swing.BoxLayout;
-import javax.swing.DefaultListModel;
-import javax.swing.JTabbedPane;
-import javax.swing.JTextPane;
-import javax.swing.JList;
-import javax.swing.JLabel;
-import java.awt.Component;
-import java.awt.Dimension;
 
 public class LoggerWindow extends JFrame {
 
