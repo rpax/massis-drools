@@ -1,6 +1,7 @@
 package com.massisframework.massis.dasi.agents.tasks;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.function.Predicate;
 
 import com.massisframework.massis.dasi.RuleContext;

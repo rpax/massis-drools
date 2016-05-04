@@ -4,33 +4,19 @@ import org.kie.api.definition.type.Modifies;
 import org.kie.api.definition.type.PropertyReactive;
 
 import com.massisframework.massis.dasi.RuleHighLevelController;
-import com.massisframework.massis.dasi.apps.robots.victim.VictimRobot;
 
 @PropertyReactive
 public class TeamNegotiationToSaveVictim extends TermNegotiation{
 
-	private Double bestEva;
 	private NegotiationStatus status;
-	private VictimRobot victim;
+	private VictimToSave victim;
 	private RuleHighLevelController peer;
 	private Integer nResponse;
-	public TeamNegotiationToSaveVictim(Integer nRe ,VictimRobot v,NegotiationStatus negotiationStatus)
+	public TeamNegotiationToSaveVictim(Integer nRe ,VictimToSave v,NegotiationStatus negotiationStatus)
 	{
 		this.victim = v;
 		this.status = negotiationStatus;
 		this.nResponse = nRe;
-		bestEva = (double) -1;
-	}
-
-	public Double getBestEva(	)
-	{
-		return this.bestEva;
-	}
-	
-	@Modifies({ "bestEva" })
-	public void setBestEva(Double Eva)
-	{
-		this.bestEva = Eva;
 	}
 
 	@Modifies({ "peer" })
@@ -53,7 +39,7 @@ public class TeamNegotiationToSaveVictim extends TermNegotiation{
 	}
 	
 	
-	public VictimRobot getVictim()
+	public VictimToSave getVictim()
 	{
 		return victim;
 	}

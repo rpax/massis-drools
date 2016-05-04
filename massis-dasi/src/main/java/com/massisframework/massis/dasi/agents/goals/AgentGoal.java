@@ -6,23 +6,17 @@ import org.kie.api.definition.type.PropertyReactive;
 @PropertyReactive
 public abstract class AgentGoal<T> {
 
-	public static final int PENDING = 1;
-	
-	public static final int SOLVING = 2;
+	public static enum GoalState {
+		PENDING, SOLVING, SOLVED, REFINED, FAILED
+	}
 
-	public static final int SOLVED = 3;
-
-	public static final int REFINED = 4;
-	
-	public static final int FAILED = 5;
-	
 	private T goalData;
-	private int goalState;
+	private GoalState goalState;
 
 	public AgentGoal(T goalData)
 	{
 		this.goalData = goalData;
-		this.goalState=PENDING;
+		this.goalState=GoalState.PENDING;
 	}
 
 	public T getGoalData()
@@ -37,12 +31,12 @@ public abstract class AgentGoal<T> {
 	}
 
 	@Modifies({ "goalState" })
-	public void setGoalState(int goalState)
+	public void setGoalState(GoalState goalState)
 	{
 		this.goalState = goalState;
 	}
 
-	public int getGoalState()
+	public GoalState getGoalState()
 	{
 		return goalState;
 	}

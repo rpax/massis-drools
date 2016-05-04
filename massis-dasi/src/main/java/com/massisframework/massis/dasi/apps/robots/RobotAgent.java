@@ -1,5 +1,7 @@
 package com.massisframework.massis.dasi.apps.robots;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -29,6 +31,8 @@ public abstract class RobotAgent extends RuleHighLevelController {
 	private float energy;
 	private boolean idle;
 	private String teamName;
+	private Collection<RobotAgent> teamMembers;
+	private Collection<RobotAgent> teamLeaders;
 	
 
 	public RobotAgent(LowLevelAgent agent, Map<String, String> metadata,
@@ -39,6 +43,9 @@ public abstract class RobotAgent extends RuleHighLevelController {
 		this.logger = Logger.getLogger("RobotAgent_" + this.agent.getID());
 		this.energy = 1000;
 		agent.setMaxSpeed(agent.getMaxSpeed()+agent.getMaxSpeed()*Math.random());
+		this.teamMembers = new ArrayList<>();
+		this.teamLeaders = new ArrayList<>();
+		
 	}
 
 	public String getTeamName()
@@ -50,6 +57,18 @@ public abstract class RobotAgent extends RuleHighLevelController {
 	{
 		return this.teamName != null;
 	}
+
+	public Collection<RobotAgent> getTeamMembers()
+	{
+		return teamMembers;
+	}
+	
+	public Collection<RobotAgent> getTeamLeaders()
+	{
+		return teamLeaders;
+	}
+
+	
 	public Location getLocation()
 	{
 		return this.agent.getLocation();
@@ -60,10 +79,41 @@ public abstract class RobotAgent extends RuleHighLevelController {
 	{
 		this.teamName = teamName;
 	}
+
+	@Modifies("teamMembers")
+	public void setTeamMembers(Collection<RobotAgent> teamMembers)
+	{
+		this.teamMembers = teamMembers;
+	}
+	
+	@Modifies("teamLeaders")
+	public void setTeamLeaders(Collection<RobotAgent> leaders)
+	{
+		teamLeaders = leaders;
+	}
+
+	@Modifies("teamMembers")
+	public void addTeamMember(RobotAgent teamMember)
+	{
+		this.teamMembers.add(teamMember);
+	}
+	
+	@Modifies("teamMembers")
+	public void addTeamLeader(RobotAgent leader)
+	{
+		this.teamLeaders.add(leader);
+	}
+	
+	public Logger getLogger()
+	{
+		return logger;
+	}
+
 	public float getEnergy()
 	{
 		return energy;
 	}
+
 	@Modifies("energy")
 	public void setEnergy(float energy)
 	{

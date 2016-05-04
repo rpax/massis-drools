@@ -1,19 +1,15 @@
 package com.massisframework.massis.dasi.apps.robots.leader;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
+import java.util.logging.Logger;
 
-import org.kie.api.definition.type.Modifies;
 import org.kie.api.definition.type.PropertyReactive;
 
 import com.massisframework.massis.dasi.apps.robots.RobotAgent;
 import com.massisframework.massis.dasi.apps.robots.leader.info.VictimToSave;
-import com.massisframework.massis.dasi.apps.robots.victim.VictimRobot;
-import com.massisframework.massis.dasi.logger.ControladorLog;
 import com.massisframework.massis.model.agents.LowLevelAgent;
-import com.massisframework.massis.model.location.Location;
 
 @PropertyReactive
 public class LeaderRobot extends RobotAgent {
@@ -22,22 +18,14 @@ public class LeaderRobot extends RobotAgent {
 	 * 
 	 */
 	private static final long serialVersionUID = 941413336283805172L;
-	private Collection<RobotAgent> teamMembers;
-	private Collection<RobotAgent> teamLeaders;
 
 	public LeaderRobot(LowLevelAgent agent, Map<String, String> metadata,
 			String resourcesFolder)
 	{
 		super(agent, metadata, resourcesFolder);
 		this.setIdle(false);
-		this.teamMembers = new ArrayList<>();
-		this.teamLeaders = new ArrayList<>();
-		//ControladorLog.getInstance().addAgent(this);
 	}
-	public void info(String texto,String tipo)
-	{
-		//ControladorLog.getInstance().appendInfo(this.toString(), texto, tipo);
-	}
+	
 	@Override
 	protected String[] getRulePaths()
 	{
@@ -56,45 +44,7 @@ public class LeaderRobot extends RobotAgent {
 		return 0;
 	}
 	
-	public Collection<RobotAgent> getTeamMembers()
-	{
-		return teamMembers;
-	}
-	
-	public Collection<RobotAgent> getTeamLeaders()
-	{
-		return teamLeaders;
-	}
-	
-	
-	@Modifies("teamMembers")
-	public void setTeamMembers(Collection<RobotAgent> teamMembers)
-	{
-		this.teamMembers = teamMembers;
-	}
-	
-	@Modifies("teamLeaders")
-	public void setTeamLeaders(Collection<RobotAgent> leaders)
-	{
-		teamLeaders = leaders;
-	}
-
-	@Modifies("teamMembers")
-	public void addTeamMember(RobotAgent teamMember)
-	{
-		this.teamMembers.add(teamMember);
-
-	}
-	
-	@Modifies("teamLeaders")
-	public void addTeamLeader(RobotAgent leader)
-	{
-		this.teamLeaders.add(leader);
-	}
-	
-	
-	
-	public RobotAgent getBestIdleAgent(VictimRobot tv)
+	public RobotAgent getBestIdleAgent(VictimToSave tv)
 	{
 		RobotAgent res = null, aux = null;
 		Iterator<RobotAgent> itR = this.getTeamMembers().iterator();
@@ -115,15 +65,15 @@ public class LeaderRobot extends RobotAgent {
 	   	  	{
 	   	  		if(res==null) 	
 	   	  			res = aux;
-	   	  		else if(res.distanceTo(tv.getLocation()) 
-		 			> aux.distanceTo(tv.getLocation()))
+	   	  		else if(res.distanceTo(tv.getVictim().getLocation()) 
+		 			> aux.distanceTo(tv.getVictim().getLocation()))
 	   	  			res = aux;
 	   	  	}
 		}
 		return res;
 	}
 	
-	public double getFloatBestIdleAgent(VictimRobot tv)
+	public double getFloatBestIdleAgent(VictimToSave tv)
 	{
 		double res = -1, aux = 0;
 		RobotAgent auxR = null;
@@ -145,22 +95,11 @@ public class LeaderRobot extends RobotAgent {
 			if(auxR.isIdle())
 			{
 				if(res==-1)
-					res = auxR.distanceTo(tv.getLocation());
-				else if(res > auxR.distanceTo(tv.getLocation()))
+					res = auxR.distanceTo(tv.getVictim().getLocation());
+				else if(res > auxR.distanceTo(tv.getVictim().getLocation()))
 					res = aux;
 			}
 		}
 		return res;
-	}
-	
-	
-	public boolean closestLeaderTo(Location loc){
-		double myDistance = this.distanceTo(loc);
-		double distance = Double.POSITIVE_INFINITY;
-		for(RobotAgent leader : this.teamLeaders){
-			if(leader.distanceTo(loc) < distance)
-				distance = leader.distanceTo(loc);
-		}
-		return myDistance < distance; 
 	}
 }
