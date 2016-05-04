@@ -2,9 +2,9 @@ package com.massisframework.massis.dasi.apps.robots.messages.saveVictimNegotiati
 
 import com.massisframework.massis.dasi.apps.robots.messages.RobotMessageContent;
 
-public class SaveVictimNegotiationTerms extends RobotMessageContent<Double> {
+public class SaveVictimNegotiationTerms extends RobotMessageContent<NegotiationTerms> {
 
-	public SaveVictimNegotiationTerms(Double info, String uuid)
+	public SaveVictimNegotiationTerms(NegotiationTerms info, String uuid)
 	{
 		super(info, uuid);
 	}
