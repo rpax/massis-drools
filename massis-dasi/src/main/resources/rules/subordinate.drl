@@ -10,7 +10,6 @@ import com.massisframework.massis.dasi.agents.tasks.SimpleTasksFactory;
 import com.massisframework.massis.dasi.events.messages.MessageReceived;
 import com.massisframework.massis.model.agents.LowLevelAgent;
 import com.massisframework.massis.dasi.agents.goals.*;
-import com.massisframework.massis.dasi.agents.goals.AgentGoal.GoalState;
 //robots
 import com.massisframework.massis.dasi.apps.robots.*;
 import com.massisframework.massis.dasi.apps.robots.messages.*;
@@ -24,6 +23,7 @@ import com.massisframework.massis.dasi.apps.robots.subordinate.goals.*;
 
 import com.massisframework.massis.dasi.apps.robots.victim.*;
 
+import com.massisframework.massis.dasi.apps.robots.leader.*;
 import com.massisframework.massis.dasi.apps.robots.leader.info.VictimToSave;
 import com.massisframework.massis.dasi.apps.robots.commontasks.*;
 
@@ -52,27 +52,12 @@ rule "HiTeam message Received - It is my team."
  					$uuid    :  data.uuid
      			) from entry-point MESSAGING
  	then
-    	$me.getLogger().info("I have a message from my leader.");
- 	 	$me.getLogger().info("Sending message from Me :"+$me+" -> Leader:"+$sender+".");  
+    	$me.info("HiTeam message Received - It is my team.", "titulo");
+    	$me.info("Recibido mensaje de Hola del lider de mi equipo.", "info");
+	  	$me.setLeader((RobotAgent)$sender);
+ 	  	$me.info("Envio Hola a el lider para que sepa que soy tambien de su equipo.", "envio");
  	  	SimpleTasksFactory.sendMessage($me,$sender,new HiTeamResponseMember($team, $uuid));
-	  	delete($mr);
-end
-
-
-rule "HiTeam message Received - It isn't my team."
-	when
-		$me : SubordinateRobot($team: teamName)
-		$mr : MessageReceived(
-				data instanceof HiTeam,
-				$sender  : sender,
-				$info : data.info,
- 				$uuid    :  data.uuid
-     		) from entry-point MESSAGING
-     	not(eval($team==$info))
- 	then
- 	  //$me.getLogger().info("I have a message from other team leader.");
- 	  //$me.getLogger().info("Deleting message from inbox.");
- 	  delete($mr);
+	  	retract($mr);
 end
 
 
@@ -87,8 +72,9 @@ rule "You are part of my team message Received."
  				$uuid    :  data.uuid
      		) from entry-point MESSAGING
  	then
- 	  $me.getLogger().info("My team leader knows that i'm a member of the team.");
- 	  delete($mr);
+		$me.info("You are part of my team message Received.", "titulo");
+    	$me.info("Recibida confirmación de adhesion al equipo por parte del lider: "+$sender+".", "info");
+	  	retract($mr);
 end
 
 
@@ -97,23 +83,6 @@ end
 // Operational order negotiation rules
 //-----------------------------------------------------------------------------
 
-
-rule "Receive I have no energy message - But I'm not a Leader"
-    when
-       $me	: SubordinateRobot()
-       $mr		: MessageReceived(
-					data instanceof IHaveNoEnergy,
-					sender instanceof RobotAgent,
-					$sender  : sender,
-					$location : data.info,
-					$uuid : data.uuid
-     		) from entry-point MESSAGING
-     //already knows that the victim should be saved					
-    then
-	 //$me.getLogger().info("Received message from a victim but i'm not a leader.");
-	 //$me.getLogger().info("Deleting message from inbox.");
-	 delete($mr);
-end
 
 
 rule "Received save victim order"
@@ -125,71 +94,111 @@ rule "Received save victim order"
 				$victim : data.info
 			) from entry-point MESSAGING
     then
-	  //ñapa demo
-	  	$me.getLogger().info("Received save victim order");
+		$me.info("Received save victim order", "titulo");
+    	$me.info("Recibida orden de salvar a "+$victim+".", "info");
 	  	modify($me){setIdle(false)}
-	  	insert(new VictimToSave($victim));
-	  
+	  	insert(new VictimToSave($victim));	  
   		HelpVictim kmt = new HelpVictim((VictimRobot)$victim);
  		insert(kmt);
   	    $gm.addGoal(kmt);
-	  	delete($mr);
+	  	retract($mr);
 end
 
 rule "Save victim - approach"
     when	
 		$gm  : GoalMemory()
-		$kmt : HelpVictim ( goalState  == GoalState.PENDING ) from $gm.goals
+		$kmt : HelpVictim ( goalState  == AgentGoal.PENDING ) from $gm.goals
     	VictimToSave($victim : victim)
        	$me	:   SubordinateRobot()
        	LowLevelInfo( location.distance2D($victim.getLocation())>1000)
     then
-	  	//ñapa demo
 	  	AgentTask task = new MoveToTarget();
 	  	task.execute($me,$victim.getLocation());
-	 	//$me.getLogger().info("moving to "+$victim+"for saving");
 end
-/*
-rule "If another victim is seen, recharge it"
-    when
-      LowLevelInfo( $avr: agentsInVisionRadio)
-      LowLevelAgent( $victim : highLevelData  instanceof VictimRobot) from $avr
-    then
- 	  ((VictimRobot)$victim).setEnergy(1000);
-end
-*/
+
 rule "Save victim - recharge"
     when
     	$gm  : GoalMemory()
-	   	$kmt : HelpVictim ( goalState  == GoalState.PENDING ) from $gm.goals
+	   	$kmt : HelpVictim ( goalState  == AgentGoal.PENDING ) from $gm.goals
        	$vts: VictimToSave($victim : victim)
        	$me	:   SubordinateRobot()
        	LowLevelInfo( location.distance2D($victim.getLocation())<=1000)
     then
+	  	$me.info("Save victim - recharge", "titulo");
+    	$me.info("Actualizo a "+$victim+" su energia.", "info");
+		$me.info("Envio confirmacion de rescate a el lider: "+$me.getLeader()+".", "envio");
+
 	  	$victim.setEnergy(1000);
-	  	$me.getLogger().info("updating energy");
-	  	delete($vts);
+		retract($vts);
 	  	modify($me){setIdle(true)}
 	  	String uuid=UUID.randomUUID().toString();
-	  	SimpleTasksFactory.sendMessage($me,new VictimSaved($victim, uuid));
-  	  	modify($kmt){ setGoalState( GoalState.SOLVED ) }	   
+	  	SimpleTasksFactory.sendMessage($me,$me.getLeader(),new VictimSaved($victim, uuid));
+  	  	modify($kmt){ setGoalState( AgentGoal.SOLVED ) }	   
 end
 
 
+rule "Received go to leader order"
+    when
+  		$gm  : GoalMemory()
+	   	$me	: SubordinateRobot(idle == true,
+	   						   $ra : leader )
+       	$mr	:	MessageReceived(
+				data instanceof GoToLeader,
+				$info : data.info
+			) from entry-point MESSAGING
+    then
+		$me.info("Received go to leader order", "titulo");
+    	$me.info("Recibida orden de volver con el lider "+$ra+".", "info");
+    	
+    	String uuid=UUID.randomUUID().toString();
+	  	SimpleTasksFactory.sendMessage($me,$me.getLeader(),new ACKGoToLeader($me, uuid));
+    	
+	  	modify($me){setIdle(false)} 
+  		ReturnToLeader kmt = new ReturnToLeader ((LeaderRobot)$ra);
+ 		insert(kmt);
+  	    $gm.addGoal(kmt);
+	  	retract($mr);
+end
 
+rule "Go to leader - initial approach"
+    when	
+		$gm  : GoalMemory()
+		$kmt : ReturnToLeader ( goalState  == AgentGoal.PENDING )
+       	$me	:   SubordinateRobot( $ra : leader )
+       	LowLevelInfo( location.distance2D($ra.getLocation())>1000)
+    then
+    	$me.info("Go to leader - initial approach", "titulo");
+    	$me.info("Acercandome a mi lider "+$ra+".", "info");
+    
+	  	AgentTask task = new MoveToTarget();
+	  	task.execute($me,$ra.getLocation());
+	  	modify($kmt){ setGoalState( AgentGoal.SOLVING ) }
+end
 
+rule "Go to leader - incremental approach"
+    when	
+		$gm  : GoalMemory()
+		$kmt : ReturnToLeader ( goalState  == AgentGoal.SOLVING )
+       	$me	:   SubordinateRobot( $ra : leader )
+       	LowLevelInfo( location.distance2D($ra.getLocation())>1000)
+    then
+    	//$me.info("Go to leader - incremental approach", "titulo");
+    	//$me.info("Acercandome a mi lider "+$ra+".", "info");
+    
+	  	AgentTask task = new MoveToTarget();
+	  	task.execute($me,$ra.getLocation());
+end
 
+rule "Go to leader - arrive"
+    when
+    	$gm  : GoalMemory()
+	   	$kmt : ReturnToLeader  ( goalState  == AgentGoal.SOLVING )
+       	$me	:   SubordinateRobot( $ra : leader )
+       	LowLevelInfo( location.distance2D($ra.getLocation())<=1000)
+    then
+	  	$me.info("Go to leader - arrive", "titulo");
+    	$me.info("Llego a mi lider "+$ra+".", "info");
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+	  	modify($me){setIdle(true)}
+  	  	modify($kmt){ setGoalState( AgentGoal.SOLVED ) }	   
+end
