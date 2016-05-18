@@ -7,6 +7,10 @@ import java.util.Map;
 import org.controlsfx.control.CheckListView;
 
 import com.massisframework.gui.DrawableLayer;
+import com.massisframework.gui.javafx.charts.AbstractAgentChartHandler;
+import com.massisframework.gui.javafx.charts.SimChartManager;
+import com.massisframework.logging.LogLine;
+import com.massisframework.logging.SimulationLoggable;
 import com.massisframework.massis.displays.SimulationDisplay;
 import com.massisframework.massis.displays.floormap.layers.DrawableFloor;
 import com.massisframework.massis.model.agents.HighLevelController;
@@ -76,8 +80,8 @@ public class AppController implements SimulationDisplay {
 
 	private SimChartManager chartManager;
 
-	private Map<Class<? extends HighLevelController>, Class<? extends AgentChartCollection<?>>> chartHandlers;
-	private Map<HighLevelController, AgentChartCollection<?>> charts;
+	private Map<Class<? extends HighLevelController>, Class<? extends AbstractAgentChartHandler<?>>> chartHandlers;
+	private Map<HighLevelController, AbstractAgentChartHandler<?>> charts;
 
 	public AppController()
 	{
@@ -116,13 +120,13 @@ public class AppController implements SimulationDisplay {
 		this.sim2dGUI.getBuilding().getScheduledControllers().forEach(hlc -> {
 			if (this.chartHandlers.containsKey(hlc.getClass()))
 			{
-				Class<? extends AgentChartCollection<?>> clazz = this.chartHandlers
+				Class<? extends AbstractAgentChartHandler<?>> clazz = this.chartHandlers
 						.get(hlc.getClass());
 				if (clazz != null)
 				{
 					try
 					{
-						AgentChartCollection<?> ch = clazz
+						AbstractAgentChartHandler<?> ch = clazz
 								.getConstructor(hlc.getClass())
 								.newInstance(hlc);
 						this.charts.put(hlc, ch);
@@ -285,7 +289,7 @@ public class AppController implements SimulationDisplay {
 
 	public <T extends HighLevelController> void addChartHandler(
 			Class<T> agentClass,
-			Class<? extends AgentChartCollection<T>> handler)
+			Class<? extends AbstractAgentChartHandler<T>> handler)
 	{
 		this.chartHandlers.put(agentClass, handler);
 	}

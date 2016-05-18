@@ -9,8 +9,8 @@ import org.drools.core.time.SessionPseudoClock;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.rule.FactHandle;
 
-import com.massisframework.gui.javafx.LoggerProvider;
-import com.massisframework.gui.javafx.SimulationLoggable;
+import com.massisframework.logging.LoggerProvider;
+import com.massisframework.logging.SimulationLoggable;
 import com.massisframework.massis.dasi.lowlevel.LowLevelInfo;
 import com.massisframework.massis.dasi.lowlevel.SimTick;
 import com.massisframework.massis.model.agents.HighLevelController;

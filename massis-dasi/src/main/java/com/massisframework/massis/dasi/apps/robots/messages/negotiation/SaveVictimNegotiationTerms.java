@@ -1,4 +1,4 @@
-package com.massisframework.massis.dasi.apps.robots.messages.saveVictimNegotiation;
+package com.massisframework.massis.dasi.apps.robots.messages.negotiation;
 
 import com.massisframework.massis.dasi.apps.robots.messages.RobotMessageContent;
 

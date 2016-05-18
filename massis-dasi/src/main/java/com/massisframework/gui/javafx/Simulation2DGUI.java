@@ -3,6 +3,7 @@ package com.massisframework.gui.javafx;
 import java.io.IOException;
 
 import com.massisframework.gui.DrawableLayer;
+import com.massisframework.gui.javafx.charts.AbstractAgentChartHandler;
 import com.massisframework.massis.displays.SimulationDisplay;
 import com.massisframework.massis.displays.floormap.layers.DrawableFloor;
 import com.massisframework.massis.model.agents.HighLevelController;
@@ -94,7 +95,7 @@ public class Simulation2DGUI extends Stage
 
 	public <T extends HighLevelController> void addChartHandler(
 			Class<T> agentClass,
-			Class<? extends AgentChartCollection<T>> handler)
+			Class<? extends AbstractAgentChartHandler<T>> handler)
 	{
 		this.controller.addChartHandler(agentClass, handler);
 	}

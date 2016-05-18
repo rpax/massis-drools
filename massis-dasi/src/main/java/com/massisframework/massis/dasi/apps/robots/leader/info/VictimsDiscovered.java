@@ -1,11 +1,6 @@
 package com.massisframework.massis.dasi.apps.robots.leader.info;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
 import org.kie.api.definition.type.Modifies;
-
-import com.massisframework.massis.dasi.apps.robots.RobotAgent;
 
 public class VictimsDiscovered {
 

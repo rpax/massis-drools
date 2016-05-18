@@ -6,8 +6,6 @@ import org.kie.api.definition.type.Modifies;
 import org.kie.api.definition.type.PropertyReactive;
 
 import com.massisframework.massis.dasi.apps.robots.RobotAgent;
-import com.massisframework.massis.dasi.apps.robots.leader.LeaderRobot;
-import com.massisframework.massis.dasi.logger.ControladorLog;
 import com.massisframework.massis.model.agents.LowLevelAgent;
 
 @PropertyReactive
@@ -21,15 +19,8 @@ public class SubordinateRobot extends RobotAgent {
 	{
 		super(agent, metadata, resourcesFolder);
 		this.setIdle(true);
-		//ControladorLog.getInstance().addAgent(this);
 		leader = null;
 	}
-	public void info(String texto,String tipo)
-	{
-	//	ControladorLog.getInstance().appendInfo(this.toString(), texto, tipo);
-	}
-	
-	
 	public RobotAgent getLeader()
 	{
 		return leader;

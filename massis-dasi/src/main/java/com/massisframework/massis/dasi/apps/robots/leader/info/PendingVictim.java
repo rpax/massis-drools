@@ -6,8 +6,8 @@ import com.massisframework.massis.dasi.apps.robots.victim.VictimRobot;
 public class PendingVictim {
 
 	
-	private LeaderRobot leader;
-	private VictimRobot victim;
+	protected LeaderRobot leader;
+	protected VictimRobot victim;
 	
 	public PendingVictim(LeaderRobot leader, VictimRobot victim){
 		this.leader = leader;

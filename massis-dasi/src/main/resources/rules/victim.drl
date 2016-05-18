@@ -15,8 +15,8 @@ import com.massisframework.massis.model.location.Location;
 //Robots
 import com.massisframework.massis.dasi.apps.robots.*;
 import com.massisframework.massis.dasi.apps.robots.messages.*;
-import com.massisframework.massis.dasi.apps.robots.messages.getHelp.*;
-import com.massisframework.massis.dasi.apps.robots.messages.goSafePoint.*;
+import com.massisframework.massis.dasi.apps.robots.messages.help.*;
+import com.massisframework.massis.dasi.apps.robots.messages.safepoint.*;
 import com.massisframework.massis.dasi.apps.robots.victim.info.*;
 import com.massisframework.massis.dasi.apps.robots.victim.goals.*;
 import com.massisframework.massis.dasi.apps.robots.commontasks.*;

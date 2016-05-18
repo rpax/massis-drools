@@ -1,4 +1,4 @@
-package com.massisframework.gui.javafx;
+package com.massisframework.gui.javafx.charts;
 
 
 

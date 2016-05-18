@@ -9,9 +9,7 @@ import org.kie.api.definition.type.Modifies;
 import org.kie.api.definition.type.PropertyReactive;
 
 import com.massisframework.massis.dasi.apps.robots.RobotAgent;
-import com.massisframework.massis.dasi.apps.robots.leader.info.VictimToSave;
 import com.massisframework.massis.dasi.apps.robots.victim.VictimRobot;
-import com.massisframework.massis.dasi.logger.ControladorLog;
 import com.massisframework.massis.model.agents.LowLevelAgent;
 import com.massisframework.massis.model.location.Location;
 
@@ -32,12 +30,8 @@ public class LeaderRobot extends RobotAgent {
 		this.setIdle(false);
 		this.teamMembers = new ArrayList<>();
 		this.teamLeaders = new ArrayList<>();
-		//ControladorLog.getInstance().addAgent(this);
 	}
-	public void info(String texto,String tipo)
-	{
-		//ControladorLog.getInstance().appendInfo(this.toString(), texto, tipo);
-	}
+	
 	@Override
 	protected String[] getRulePaths()
 	{

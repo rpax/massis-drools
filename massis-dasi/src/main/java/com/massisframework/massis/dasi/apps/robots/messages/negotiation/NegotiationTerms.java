@@ -1,9 +1,9 @@
-package com.massisframework.massis.dasi.apps.robots.messages.saveVictimNegotiation;
+package com.massisframework.massis.dasi.apps.robots.messages.negotiation;
 
+import org.kie.api.definition.type.Modifies;
 import org.kie.api.definition.type.PropertyReactive;
 
 import com.massisframework.massis.dasi.apps.robots.victim.VictimRobot;
-import org.kie.api.definition.type.Modifies;
 
 @PropertyReactive
 public class NegotiationTerms {

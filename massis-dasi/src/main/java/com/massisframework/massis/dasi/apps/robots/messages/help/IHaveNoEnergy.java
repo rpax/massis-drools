@@ -1,4 +1,4 @@
-package com.massisframework.massis.dasi.apps.robots.messages.getHelp;
+package com.massisframework.massis.dasi.apps.robots.messages.help;
 
 import com.massisframework.massis.dasi.apps.robots.messages.RobotMessageContent;
 import com.massisframework.massis.model.location.Location;

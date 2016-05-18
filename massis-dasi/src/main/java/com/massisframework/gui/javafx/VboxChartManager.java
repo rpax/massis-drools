@@ -1,5 +1,7 @@
 package com.massisframework.gui.javafx;
 
+import com.massisframework.gui.javafx.charts.SimChartManager;
+
 import javafx.scene.chart.Chart;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;

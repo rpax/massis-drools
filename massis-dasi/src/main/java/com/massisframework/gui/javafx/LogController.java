@@ -3,6 +3,9 @@ package com.massisframework.gui.javafx;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.massisframework.logging.LogLine;
+import com.massisframework.logging.LoggerProvider;
+
 import javafx.beans.property.ReadOnlyLongWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;

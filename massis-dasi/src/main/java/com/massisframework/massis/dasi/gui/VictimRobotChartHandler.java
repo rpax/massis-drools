@@ -1,9 +1,9 @@
 package com.massisframework.massis.dasi.gui;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import com.massisframework.gui.javafx.AgentChartCollection;
+import com.massisframework.gui.javafx.charts.AbstractAgentChartHandler;
+import com.massisframework.gui.javafx.charts.ChartHandler;
 import com.massisframework.massis.dasi.apps.robots.victim.VictimRobot;
 
 import javafx.application.Platform;
@@ -13,7 +13,7 @@ import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 
 public class VictimRobotChartHandler
-		extends AgentChartCollection<VictimRobot> {
+		extends AbstractAgentChartHandler<VictimRobot> implements ChartHandler{
 
 	private LineChart<Number, Number> energyChart;
 	private long tick;

@@ -6,7 +6,6 @@ import org.kie.api.definition.type.Modifies;
 import org.kie.api.definition.type.PropertyReactive;
 
 import com.massisframework.massis.dasi.apps.robots.RobotAgent;
-import com.massisframework.massis.dasi.logger.ControladorLog;
 import com.massisframework.massis.model.agents.LowLevelAgent;
 
 @PropertyReactive

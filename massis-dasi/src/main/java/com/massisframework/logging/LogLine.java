@@ -1,4 +1,4 @@
-package com.massisframework.gui.javafx;
+package com.massisframework.logging;
 
 public interface LogLine {
 	public long getTick();
